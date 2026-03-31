@@ -21,3 +21,8 @@ Since there is no centralized data set which can contain all the specific parame
   * *Distance/Access:* Driving time in minutes.
   * *Terrain:* Slope in degrees, Soil composition in percentages (clay/sand).
   * *Risk Scores:* Normalized indices (scaled from 0.0 to 1.0).
+
+
+## 4. Analytical Approach
+
+The analysis proceeds in three stages: firstly, using exploratory data analysis on the East, West, and Middle Black Sea region's campsites to determine weather conditions, terrain risks, and human density to map distributional patterns and bivariate relationships. Secondly, applying correlation analysis and hypothesis tests to determine how much accessibility, human density, and wildlife encounter risks affect the condition of each campsite. Thirdly, for the machine learning part, models like Linear Regression, Ridge, Lasso, Random Forest, Gradient Boosting, and SVR will be used to predict the risk score between 0.0 and 1.0. I plan to apply SHAP values to the best model to understand which factors are more important. Also, the campsites will be classified as Low, Medium, or High risk. Finally, unsupervised clustering will help identify sites that get highly visited even though they are hard to reach.
