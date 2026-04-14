@@ -1,4 +1,5 @@
 pandas
+numpy
+meteostat
 matplotlib
 seaborn
-scipy
