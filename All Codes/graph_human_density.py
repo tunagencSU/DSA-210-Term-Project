@@ -4,6 +4,8 @@ import matplotlib.dates as mdates
 import glob
 import os
 
+# Her ayrı kamp alanı için 2024 ve 2025 yıllarında haftalık tahmini kişi sayısı grafiği (bar chart)
+
 # Grafikler için genel estetik ayarları
 plt.style.use('default')
 
