@@ -4,6 +4,8 @@ import meteostat as ms
 from datetime import datetime
 import re
 
+# günlük hava durumu tahmini yapan kod son 2 yıl 2024-2025
+
 # ==========================================
 # 1. METİN PARÇALAYICI (INPUT İŞLEYİCİ)
 # ==========================================
