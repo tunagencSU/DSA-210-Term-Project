@@ -12,7 +12,7 @@ Since there is no centralized data set which can contain all the specific parame
 
 ## 3. Dataset Characteristics
 
-* **Collection Period & Temporal Resolution:** The collected data will cover a historical period of 5 years. The collected data will be divided into weekly intervals and be used for the estimation of weather conditions. For the human densitiy data all 2024 and 2025 Google comments, Wikiloc publishes and formal information sources about camp cites will be analyzed to estimate the monthly human density.
+* **Collection Period & Temporal Resolution:** The collected data will cover a historical period of 5 years (2021-2025). The collected data will be divided into weekly intervals and be used for the estimation of weather conditions. For the human densitiy data all 2024 and 2025 Google comments, Wikiloc publishes and formal information sources about camp cites will be analyzed to estimate the monthly human density.
 * **Sample Size:** The Weather condition data will be the 18 camp sites' weather condition over a 5 years period (260 week) which will be approximately 4680 primary records. For the human density Google comment will be analysed, therefore no exact number can be shown (approximately between 40000 – 50000 Google comment data).
 * **Key Variables and Expected Units:**
   * *Weather:* Temperature in Celsius (°C), Precipitation in millimeters (mm).
