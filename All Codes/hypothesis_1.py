@@ -3,6 +3,8 @@ import os
 import glob
 from scipy.stats import pearsonr, ttest_ind
 
+# Hipotez testi 1
+
 # ==========================================
 # KARADENİZ KAMP ALANLARI HİPOTEZ TESTİ BETİĞİ
 # ==========================================
