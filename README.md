@@ -36,7 +36,7 @@ The analysis proceeds in three stages: firstly, using exploratory data analysis 
 **Result and Interpretation:**
 The $H_0$ hypothesis was rejected in **17** of the 18 camping sites analyzed ($p < 0.05$). The relationship was found to be insignificant in only 1 location.
 
-💡 **Key Finding:** Temperature is the strongest and most universal meteorological factor determining visitor density in Black Sea camping sites. As the weather warms up, the demand for camping sites increases in a statistically clear and measurable way. Temperature serves as the primary predictive variable for our modeling.
+**Key Finding:** Temperature is the strongest and most universal meteorological factor determining visitor density in Black Sea camping sites. As the weather warms up, the demand for camping sites increases in a statistically clear and measurable way. Temperature serves as the primary predictive variable for our modeling.
 
 ---
 
@@ -50,7 +50,7 @@ The $H_0$ hypothesis was rejected in **17** of the 18 camping sites analyzed ($p
 **Result and Interpretation:**
 The $H_0$ hypothesis was rejected in **7** of the 18 camping sites analyzed (e.g., *Ayder Yaylası, Borçka Karagöl, Elevit Yaylası*), proving that precipitation has a significant effect on the number of visitors. In the remaining **11 camping sites**, no statistically significant difference was found.
 
-💡 **Key Finding:** Unlike temperature, precipitation does not affect every camping site equally. While some camping sites show high "sensitivity" to precipitation and lose visitors, others maintain their visitor base even in rainy weather. This variance likely depends on external factors such as physical infrastructure (availability of indoor areas), transportation difficulty, or visitor profile (adventurous vs. day-tripper).
+**Key Finding:** Unlike temperature, precipitation does not affect every camping site equally. While some camping sites show high "sensitivity" to precipitation and lose visitors, others maintain their visitor base even in rainy weather. This variance likely depends on external factors such as physical infrastructure (availability of indoor areas), transportation difficulty, or visitor profile (adventurous vs. day-tripper).
 
 ---
 
@@ -67,6 +67,6 @@ The $H_0$ hypothesis was rejected in **7** of the 18 camping sites analyzed (e.g
 
 Since the calculated p-value is greater than $0.05$, **the $H_0$ hypothesis is accepted.**
 
-💡 **Key Finding:** Whether a camping site is popular (crowded) or quiet on an annual basis is not a factor that affects its visitor loss on rainy days (precipitation sensitivity). Both crowded and lesser-known quiet camping sites are affected by precipitation in entirely independent ways. 
+**Key Finding:** Whether a camping site is popular (crowded) or quiet on an annual basis is not a factor that affects its visitor loss on rainy days (precipitation sensitivity). Both crowded and lesser-known quiet camping sites are affected by precipitation in entirely independent ways. 
 
 *(Note: Due to the narrowing of the sample pool in the cross-tabulation after name matching, it is recommended to re-verify this independence status with more locations in future iterations.)*
