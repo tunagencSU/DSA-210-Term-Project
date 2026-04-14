@@ -26,7 +26,7 @@ Since there is no centralized data set which can contain all the specific parame
 The analysis proceeds in three stages: firstly, using exploratory data analysis on the Black Sea region's campsites to determine weather conditions, terrain risks, and human density to map distributional patterns and bivariate relationships. Secondly, applying correlation analysis and hypothesis tests to determine how much accessibility, human density and weather condition affect the condition of each campsite. Thirdly, for the machine learning part, models like Linear Regression, Ridge, Lasso, Random Forest, Gradient Boosting, and SVR will be used to predict the overall score between 0.0 and 1.0. I plan to apply SHAP values to the best model to understand which factors are more important. Also, the campsites will be classified as Low, Medium, or High risk. Finally, unsupervised clustering will help identify sites that get highly visited even though they are hard to reach.
 
 ## 5. Hypothesis Tests
-# A. Relationship Between Temperature and Visitor Numbers 
+#### A. Relationship Between Temperature and Visitor Numbers 
 > **Method:** Pearson Correlation Test <br>
 > **Objective:** To determine whether air temperature significantly affects the number of visitors to the camping sites.
 
@@ -40,7 +40,7 @@ The $H_0$ hypothesis was rejected in **17** of the 18 camping sites analyzed ($p
 
 ---
 
-# B. Relationship Between Precipitation and Visitor Numbers
+#### B. Relationship Between Precipitation and Visitor Numbers
 > **Method:** Independent Samples Welch's T-Test <br>
 > **Objective:** To determine if there is a significant difference in the number of visitors between rainy and non-rainy weeks.
 
@@ -54,7 +54,7 @@ The $H_0$ hypothesis was rejected in **7** of the 18 camping sites analyzed (e.g
 
 ---
 
-# C. Visitor Volume and Precipitation Sensitivity
+#### C. Visitor Volume and Precipitation Sensitivity
 > **Method:** Chi-Square Test of Independence <br>
 > **Objective:** To examine whether we can make a general deduction such as *"camping sites that are visited more frequently (popular) are affected more/less by precipitation."*
 
