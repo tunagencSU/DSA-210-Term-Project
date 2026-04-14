@@ -4,6 +4,8 @@ import meteostat as ms
 from datetime import datetime
 import re
 
+# 5 yıllık ortalama haftalık hava durumu analizi 2021 ve 2025 arası
+
 # ==========================================
 # 1. METİN PARÇALAYICI (INPUT İŞLEYİCİ)
 # ==========================================
