@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import os
 
+# Her kamp alanı için sıcaklık grafiği 2024 ve 2025 (bar chart)
+
 # Grafikler için genel estetik ayarları (Tamamen temiz)
 plt.style.use('default')
 
