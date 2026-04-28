@@ -3,6 +3,8 @@ import numpy as np
 import re
 import os
 
+# her kamp alanı için ayrı ayrı hem hava durumu verilerini hem de google maps yorum sayılarını birleştiren ve buna göre tahmini haftalık kişi sayısı veren kod
+
 # ==========================================
 # 1. METİN PARÇALAYICI (INPUT İŞLEYİCİ)
 # ==========================================
