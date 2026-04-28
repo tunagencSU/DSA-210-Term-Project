@@ -69,7 +69,6 @@ Since the calculated p-value is greater than $0.05$, **the $H_0$ hypothesis is a
 
 **Key Finding:** Whether a camping site is popular (crowded) or quiet on an annual basis is not a factor that affects its visitor loss on rainy days (precipitation sensitivity). Both crowded and lesser-known quiet camping sites are affected by precipitation in entirely independent ways. 
 
-*(Note: Due to the narrowing of the sample pool in the cross-tabulation after name matching, it is recommended to re-verify this independence status with more locations in future iterations.)*
 
 ## 6. Academic Integrity & AI Disclosure
 
