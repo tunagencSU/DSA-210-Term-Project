@@ -1,0 +1,10 @@
+﻿Kİ-KARE BAĞIMSIZLIK TESTİ SONUCU
+Kullanilan Yontem: Chi-Square Test of Independence (scipy.stats.chi2_contingency)
+Chi2 Istatistigi: 0.0000
+P-Value: 1.0000
+Test Sonucu: H0 Kabul Edildi! Ziyaretçi kategorisi ile yağışa duyarlılık arasında istatistiksel bir İLİŞKİ YOKTUR.
+
+CAPRAZ TABLO
+Nüfus_Kategorisi,Evet,Hayır
+Medyandan Düşük,1,1
+Medyandan Yüksek,0,2
