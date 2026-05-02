@@ -1,196 +1,77 @@
 # A Decision Support Model for Spatial and Temporal Analysis of Camping Sites in the Black Sea Region
 
-> DSA 210 — Introduction to Data Science · Spring 2025-2026 · Term Project
-> **Author:** Tuna Genç
+## 1. Motivation and Purpose
+The aim of this project is to analyze the 18 camping sites in the black sea region. The main goal is to build a machine learning algorithm which can determine the condition of each of these camp site (Estimated Human density, weather condition, overall satisfaction expectation) in a specific date by analysing weather condition, transportation condition, human mobility and satisfaction.
 
-A complete data-science pipeline that builds a **weekly visitor-density forecasting model** for **16 camping and nature-park sites** across Türkiye's Black Sea region, by fusing meteorological data, accessibility / terrain features, the Turkish public-holiday calendar and a Google-Maps-review-based digital footprint.
+## 2. Data Sources and Collection Methodology
+Since there is no centralized data set which can contain all the specific parameters and information for analysing these 18 camp sites, the “Unified Data Set” will be achieved by collecting and cleaning the data set obtained by independent sources by the following pipeline:
+
+* **Meteorological Data:** Data weather condition will be extracted from the meteostat Python library. The obtained data will be divided into weekly sections. Spatial interpolation will be used for high-altitude areas that lack direct measurement stations.
+* **Digital footprint (Human Density):** for isolated camp sites there is no formal data about human density. Therefore to estimate the weekly digital footprint, the annual number of human visits data will be collected by web scraping and offical formal information sources (news, journal etc.). Afther the annual data collection, Google comments will be analyzed and the human density will be estimated in weekly periods accordingly by comparing the google comment data and the data collected by web scraping and offical formal information sources (news, journal etc.).
+* **Accessibility to the healthcare and city site and road conditions:** to correctly mesure the transportation condition and how much the camp site is isolated from the city, the nearest city site and healthcare center's distance and accessibility is estimated with google maps and web scraping. Slope data will be estimated accordingly with google earth data. Also the road surface data will be estimated from OpenStreetMap for each camp site. These data will be used for the estimation of transportation risks score.
+
+## 3. Dataset Characteristics
+
+* **Collection Period & Temporal Resolution:** The collected data will cover a historical period of 5 years (2021-2025). The collected data will be divided into weekly intervals and be used for the estimation of weather conditions. For the human densitiy data all 2024 and 2025 Google comments, Wikiloc publishes and formal information sources about camp cites will be analyzed to estimate the monthly human density.
+* **Sample Size:** The Weather condition data will be the 18 camp sites' weather condition over a 5 years period (260 week) which will be approximately 4680 primary records. For the human density Google comment will be analysed, therefore no exact number can be shown (approximately between 40000 – 50000 Google comment data).
+* **Key Variables and Expected Units:**
+  * *Weather:* Temperature in Celsius (°C), Precipitation in millimeters (mm).
+  * *Distance/Access:* Driving time in minutes.
+  * *Terrain:* Slope in degrees, Soil composition in percentages (clay/sand).
+  * *Risk Scores:* Normalized indices (scaled from 0.0 to 1.0).
+
+
+## 4. Analytical Approach
+
+The analysis proceeds in three stages: firstly, using exploratory data analysis on the Black Sea region's campsites to determine weather conditions, terrain risks, and human density to map distributional patterns and bivariate relationships. Secondly, applying correlation analysis and hypothesis tests to determine how much accessibility, human density and weather condition affect the condition of each campsite. Thirdly, for the machine learning part, models like Linear Regression, Ridge, Lasso, Random Forest, Gradient Boosting, and SVR will be used to predict the overall score between 0.0 and 1.0. I plan to apply SHAP values to the best model to understand which factors are more important. Also, the campsites will be classified as Low, Medium, or High risk. Finally, unsupervised clustering will help identify sites that get highly visited even though they are hard to reach.
+
+## 5. Hypothesis Tests
+#### A. Relationship Between Temperature and Visitor Numbers 
+> **Method:** Pearson Correlation Test <br>
+> **Objective:** To determine whether air temperature significantly affects the number of visitors to the camping sites.
+
+* **$H_0$ (Null Hypothesis):** There is no statistically significant relationship between temperature and the number of visitors.
+* **$H_1$ (Alternative Hypothesis):** There is a statistically significant relationship between temperature and the number of visitors.
+
+**Result and Interpretation:**
+The $H_0$ hypothesis was rejected in **17** of the 18 camping sites analyzed ($p < 0.05$). The relationship was found to be insignificant in only 1 location.
+
+**Key Finding:** Temperature is the strongest and most universal meteorological factor determining visitor density in Black Sea camping sites. As the weather warms up, the demand for camping sites increases in a statistically clear and measurable way. Temperature serves as the primary predictive variable for our modeling.
 
 ---
 
-## 1. Motivation
+#### B. Relationship Between Precipitation and Visitor Numbers
+> **Method:** Independent Samples Welch's T-Test <br>
+> **Objective:** To determine if there is a significant difference in the number of visitors between rainy and non-rainy weeks.
 
-Trip planning, park management and emergency-response capacity in remote camping areas all depend on knowing **how many people will be at a site in a given week**. There is no centralized, weekly-resolution dataset that captures this for the Black Sea region, and the visitor signal itself is hard to measure (most sites do not run turnstiles). This project builds the missing dataset, validates which environmental factors actually drive visitor numbers, and trains a Random Forest model that can predict weekly visitors for any of the 16 sites — including for **future weeks in 2026 and beyond**.
+* **$H_0$:** The visitor averages for rainy and non-rainy weeks are equal (Precipitation has no effect).
+* **$H_1$:** There is a significant difference in the visitor averages between rainy and non-rainy weeks.
 
-## 2. Data Sources & Pipeline
+**Result and Interpretation:**
+The $H_0$ hypothesis was rejected in **7** of the 18 camping sites analyzed (e.g., *Ayder Yaylası, Borçka Karagöl, Elevit Yaylası*), proving that precipitation has a significant effect on the number of visitors. In the remaining **11 camping sites**, no statistically significant difference was found.
 
-The unified weekly dataset is assembled from three independent streams:
+**Key Finding:** Unlike temperature, precipitation does not affect every camping site equally. While some camping sites show high "sensitivity" to precipitation and lose visitors, others maintain their visitor base even in rainy weather. This variance likely depends on external factors such as physical infrastructure (availability of indoor areas), transportation difficulty, or visitor profile (adventurous vs. day-tripper).
 
-| Source | What it gives | How it is collected |
-|---|---|---|
-| **Meteostat** | Daily `temp`, `prcp`, `snow`, `rain`, `wspd`, `rhum` (2022-2025) | Top-3 nearby stations with ≥70 % completeness, blended with **inverse-distance weighting** + **lapse-rate (-0.65 °C / 100 m)** correction to each campsite's elevation. *Code:* [`final_code_daily_4_year.py`](ALL%20CODES/final_code_daily_4_year.py) |
-| **Google Maps reviews** | ~52 700 reviews scraped per site, aggregated to weekly review counts and average star rating | Yearly **β = (annual visitors) / (annual reviews)** is computed per location from formal annual-visitor figures, then `weekly_visitors = weekly_reviews × β_year` produces the calibrated weekly target. *Code:* [`merge_code_4year.py`](ALL%20CODES/merge_code_4year.py) |
-| **Google Maps / Earth + OpenStreetMap** | Elevation, distance & driving time to nearest hospital, average road slope, road-surface type, sub-region | Hand-curated table [`Camp_data_road_&_annual_visitors.csv`](Fixed%20Data/Camp_data_road_%26_annual_visitors.csv) |
+---
 
-These tables are joined into a single weekly file by [`birlestir.py`](ALL%20CODES/birlestir.py):
+#### C. Visitor Volume and Precipitation Sensitivity
+> **Method:** Chi-Square Test of Independence <br>
+> **Objective:** To examine whether we can make a general deduction such as *"camping sites that are visited more frequently (popular) are affected more/less by precipitation."*
 
-[`Fixed Data/AA_Makine_Ogrenmesi_Hazir_Tum_Veri_YENI.csv`](Fixed%20Data/AA_Makine_Ogrenmesi_Hazir_Tum_Veri_YENI.csv) — **3 360 rows × 33 columns**, 16 sites × 210 weeks (2022-W1 … 2025-W52).
+* **$H_0$:** The visitor volume category (Above/Below Median) and precipitation sensitivity are independent of each other (No relationship).
+* **$H_1$:** There is a significant relationship between the visitor category and precipitation sensitivity.
 
-### 2.1 Sites covered
+**Result and Interpretation:**
+* **Test Statistic:** $\chi^2 = 0.0000$
+* **P-Value:** $1.0000$
 
-West Black Sea: Abant Gölü · Gölcük · Yedigöller · Güzeldere · Horma Kanyonu · Valla Kanyonu &nbsp;|&nbsp; Central Black Sea: Perşembe Yaylası · Ulugöl · Şahinkaya Kanyonu · Erfelek Şelaleleri &nbsp;|&nbsp; East Black Sea: Borçka Karagöl · Şavşat Karagöl · Hıdırnebi · Kuzalan · Kümbet · Elevit Yaylası
+Since the calculated p-value is greater than $0.05$, **the $H_0$ hypothesis is accepted.**
 
-## 3. Exploratory Data Analysis
+**Key Finding:** Whether a camping site is popular (crowded) or quiet on an annual basis is not a factor that affects its visitor loss on rainy days (precipitation sensitivity). Both crowded and lesser-known quiet camping sites are affected by precipitation in entirely independent ways. 
 
-Per-site EDA is generated by [`eda_graphs.py`](ALL%20CODES/eda_graphs.py); for each of the 16 sites four figures are produced and stored under [`EDA_Grafikleri/`](EDA_Grafikleri/):
 
-1. **Time-series of weekly visitors** (`1_ziyaretci_zaman_serisi.png`)
-2. **Visitor count vs temperature** — dual-axis comparison (`2_ziyaretci_sicaklik_karsilastirma.png`)
-3. **Pearson correlation heat-map** between visitor count and all weather variables (`3_korelasyon_matrisi.png`)
-4. **Distribution & scatter** — visitor histogram + (visitor-vs-temp) and (visitor-vs-precip) scatter (`4_dagilim_ve_scatter.png`)
+## 6. Academic Integrity & AI Disclosure
 
-A separate script [`graph_human_density.py`](ALL%20CODES/graph_human_density.py) renders clean per-site bar charts of weekly visitors over 2024-2025, which can be found under [`EDA_GRAPHS_HUMAN_DENSİTY/`](EDA_GRAPHS_HUMAN_DENSİTY/).
+In accordance with the academic integrity guidelines of the DSA 210 course, I declare that AI tools (e.g., LLMs) were utilized to assist with the code generation, data processing, and text refinement stages of this project. 
 
-## 4. Hypothesis Testing
-
-Three statistical tests quantify the hypothesised drivers of visitor counts (full write-up in [`YENİ/Hypothesis_Tests.md`](Hypothesis_Tests.md)):
-
-| # | Question | Test | Result |
-|---|---|---|---|
-| H1 | Does temperature drive visitor numbers? | Pearson correlation, per site | **17 / 18 sites reject H₀** — temperature is the most universal driver |
-| H2 | Do rainy weeks differ from dry weeks? | Welch's t-test, per site | **7 / 18 sites reject H₀** — precipitation matters at some sites only |
-| H3 | Are popular sites more / less rain-sensitive? | Chi-square independence | H₀ accepted (χ² ≈ 0, p = 1.0) — visitor volume and rain-sensitivity are independent |
-
-Code: [`hypothesis tests/hypothesis_1.py`](hypothesis%20tests/hypothesis_1.py), [`hypothesis tests/hypothesis_2.py`](hypothesis%20tests/hypothesis_2.py).
-
-## 5. Machine-Learning Model
-
-The full model is in [`ALL CODES/ml.py`](ALL%20CODES/ml.py). Two model instances are trained from the same code, the first to honestly **report performance**, the second to **make 2026+ predictions**:
-
-| | Evaluation model (`rf_model`) | Production model (`rf_production`) |
-|---|---|---|
-| Train | 2022-2024 (1 680 rows) | 2022-2025 (2 528 rows) |
-| Test | 2025 (848 rows) | — (used to forecast forward) |
-| Purpose | Reports R², MAE, OOB, CV | Powers `gelecek_tahmin(...)` |
-
-### 5.1 Algorithm — Random Forest with leakage-safe feature engineering
-
-Target = **`rd_log = log1p(weekly_visitors / annual_mean)`** — the *log relative demand* (skewness 1.61 → 0.70). After prediction it is converted back to absolute visitors with `np.expm1(...) × annual_mean`.
-
-47 engineered features are fed to the model (automatically reduced to 15 by an importance threshold of 0.005), grouped into:
-
-* **Seasonal-pattern features (leakage-safe, all use only past years):**
-  `ayni_hafta_gecmis_ort`, `ayni_hafta_gecmis_std`, `son_yil_ayni_hafta`, `komsu_hafta_ort` — built with `groupby + shift(1) + expanding()` so each row sees only its own past.
-* **Weather + non-linear interactions:** `temp`, `prcp`, `snow`, `rain`, `wspd`, `rhum`, `temp²`, `temp × rain`, `snow × (temp<0)`, comfort term `−(temp−20)²`, `rhum × temp`, `rain × wspd`.
-* **Calendar / cyclical:** sin/cos of month and week-of-year, season, Turkish-holiday flag and its interactions with summer / spring.
-* **Location growth dynamics:** 3-year log-slope of annual visitors (`buyume_egimi`) and its trend interaction.
-* **Lagged review activity:** `yorum_rolling4`, `yorum_rolling8` — both shifted by 1 week so they look only at the past.
-* **Static location features:** elevation, road-type (one-hot), region (one-hot), hospital distance / driving time, average slope, average rating.
-
-Hyper-parameters are tuned by `RandomizedSearchCV` (20 combinations × 3 `TimeSeriesSplit` folds) on the log-target. Final settings: `n_estimators=300, max_depth=8, min_samples_split=5, min_samples_leaf=5, max_features=0.4`.
-
-### 5.2 Performance
-
-| Metric | Value |
-|---|---|
-| **Test R² (held-out 2025)** | **0.874** |
-| Train R² (2022-2024) | 0.941 |
-| Train – Test gap | 0.067 (no over-fitting) |
-| OOB R² (log-space) | 0.843 |
-| 4-fold TimeSeriesSplit CV (Folds 2-4) | 0.848 ± 0.05 |
-| Test MAE | 2 081 visitors / week |
-
-Per-site 2025 results show that **8 of 16 sites achieve R² ≥ 0.80** (Borçka Karagöl 0.88, Hıdırnebi 0.88, Erfelek 0.86, Perşembe 0.85, …). The remaining sites are primarily year-round-open facilities whose seasonal pattern is less pronounced and therefore harder to predict.
-
-### 5.3 Feature importance (top 10)
-
-| Feature | Importance |
-|---|---:|
-| `komsu_hafta_ort` (mean of ±1 neighbour weeks, past) | 0.417 |
-| `son_yil_ayni_hafta` (same week, last year) | 0.171 |
-| `ayni_hafta_gecmis_ort` (mean of same week across past years) | 0.160 |
-| `nem_sicaklik` (rhum × temp) | 0.057 |
-| `yil_ici_hafta` (week-of-year) | 0.027 |
-| `temp` | 0.024 |
-| `hafta_cos` | 0.023 |
-| `sicaklik_konfor` (-(temp-20)²) | 0.023 |
-| `mevsim` (season) | 0.020 |
-| `temp_kare` (temp²) | 0.016 |
-
-Aggregated by category: **seasonal pattern 74.8 %**, weather + interactions 13.4 %, calendar/holiday 8.5 %, other 3.3 %.
-
-### 5.4 Forecasting future weeks
-
-`gelecek_tahmin(lokasyon, ay, temp, ...)` in [`ml.py`](ALL%20CODES/ml.py) returns a 2026+ visitor estimate. Internally:
-
-1. Pulls the seasonal-pattern signal for the requested (location, week-of-year) from the 2022-2025 history table.
-2. Calls the **production model** (trained on 2022-2025) for the log-relative-demand prediction.
-3. Multiplies by a per-location **growth multiplier** `exp(slope × (year − 2023.5))` clipped to ±15 %/year so a growing site like Abant is scaled up but never extrapolated unrealistically.
-
-Sample 2026 outputs (from a model run on 2026-05-03):
-
-| Site | When | Conditions | Predicted weekly visitors |
-|---|---|---|---:|
-| Horma Kanyonu | Jul, week 30 | 22 °C, light rain | 18 405 |
-| Yedigöller | Oct, week 43 | 12 °C, rain | 11 401 |
-| Perşembe Yaylası | Aug, week 34 (holiday) | 18 °C, dry | 103 548 |
-| Elevit Yaylası | Jul, week 30 | 20 °C, light rain | 3 675 |
-| Horma Kanyonu | Jan, week 4 | -2 °C, snow | 1 197 |
-| Hıdırnebi yaylası | Aug, week 34 | 19 °C, light rain | 16 187 |
-| Abant Gölü | Nov, week 47 | 8 °C, rain | 58 325 |
-
-## 6. Project Structure
-
-```text
-DSA_PROJE_ML/
-├── ALL CODES/                         # All Python scripts
-│   ├── final_code_daily_4_year.py     # Pulls daily weather (Meteostat + IDW + lapse-rate)
-│   ├── merge_code_4year.py            # Reviews → weekly visitors (β calibration), merges with weather
-│   ├── birlestir.py                   # Combines all 16 sites into the unified weekly CSV
-│   ├── eda_graphs.py                  # Per-site EDA figures
-│   ├── graph_human_density.py         # Clean weekly-visitor bar charts (2024-2025)
-│   └── ml.py                          # Random Forest model + forecasting function
-├── Fixed Data/
-│   ├── AA_Makine_Ogrenmesi_Hazir_Tum_Veri_YENI.csv   # Unified ML-ready dataset
-│   ├── AA_Camp_data_road___annual_visitors.csv       # Static site metadata
-│   └── Camp_data_road_&_annual_visitors.csv          # Same, reference copy
-├── EDA_Grafikleri/                    # 64 EDA figures (16 sites × 4 plots)
-├── EDA_GRAPHS_HUMAN_DENSİTY/          # Clean weekly-visitor bar charts
-├── hypothesis tests/                  # H1 / H2 / H3 scripts + result CSVs
-├── Code Guidlines/                    # Reference proposal + input-format PDFs
-├── YENİ/                              # ⇐ Updated proposal / README / hypothesis-tests doc
-├── README.md                          # (Original)
-├── requirements.txt
-└── venv/
-```
-
-## 7. Reproducing the Analysis
-
-```bash
-# 1) Set up the environment
-python3 -m venv venv
-source venv/bin/activate            # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-pip install scikit-learn scipy      # ML dependencies
-
-# 2) (Optional) Re-build the unified dataset from the raw inputs
-cd "ALL CODES"
-python final_code_daily_4_year.py   # one site at a time — interactive
-python merge_code_4year.py
-python birlestir.py                 # produces Fixed Data/AA_Makine_…YENI.csv
-
-# 3) Generate EDA figures
-python eda_graphs.py
-python graph_human_density.py
-
-# 4) Run the hypothesis tests
-cd ../"hypothesis tests"
-python hypothesis_1.py
-python hypothesis_2.py
-
-# 5) Train + evaluate + forecast with the ML model
-cd "../Fixed Data"                  # ml.py reads the CSV from cwd
-python ../"ALL CODES"/ml.py
-```
-
-A full run of `ml.py` takes ~1-2 minutes on a laptop and prints the train / test / OOB / CV metrics, per-location performance, feature-importance table, and seven sample 2026 forecasts.
-
-## 8. Limitations & Future Work
-
-* The **review-to-visitor calibration coefficient β** is computed yearly per site; weeks with very few reviews (off-season) are noisier. A Bayesian shrinkage estimator could stabilise these.
-* The 2025 test split is the most recent year — performance on truly out-of-sample 2026+ data has not yet been measurable; back-testing across multiple held-out years (already partly done via `TimeSeriesSplit`) is the closest proxy.
-* Two of the originally surveyed 18 sites (Ayder Yaylası, Sülüklü Göl) were dropped from the ML dataset because their review streams were too sparse for stable β; they remain in the hypothesis-test set.
-* Future extensions: SHAP per-prediction explanations, gradient-boosting / SVR baselines for comparison, an unsupervised clustering layer to surface "hidden gems" (high visitors despite low accessibility), and a Streamlit interface around `gelecek_tahmin()`.
-
-## 9. Academic Integrity & AI Disclosure
-
-In accordance with the academic-integrity guidelines of the DSA 210 course, I declare that AI tools (LLMs) were used to assist with code generation, data processing and text refinement. All prompts and the corresponding generated outputs (chat histories) have been saved and are available on request.
+All specific prompts used and the corresponding generated outputs (chat histories) have been fully saved and documented. They are readily available upon request if needed.
