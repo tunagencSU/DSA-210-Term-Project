@@ -20,11 +20,12 @@ Since there is no centralized data set which can contain all the specific parame
   * *Distance/Access:* Driving time in minutes.
   * *Terrain:* Slope in degrees, Soil composition in percentages (clay/sand).
 
-## 4. Analytical Approach
-
-The analysis proceeds in three stages: firstly, using exploratory data analysis on the Black Sea region's campsites to determine weather conditions, terrain risks, and human density to map distributional patterns and bivariate relationships. Secondly, applying correlation analysis and hypothesis tests to determine how much accessibility, human density and weather condition affect the condition of each campsite. Thirdly, for the machine learning part, models like Linear Regression, Ridge, Lasso, Random Forest, Gradient Boosting, and SVR will be used to predict the overall score between 0.0 and 1.0. I plan to apply SHAP values to the best model to understand which factors are more important. Also, the campsites will be classified as Low, Medium, or High risk. Finally, unsupervised clustering will help identify sites that get highly visited even though they are hard to reach.
+## 4. Exploratory Data Analysis (EDA)
+First, exploratory data analysis is performed on each of the 16 campsites: per-site weekly visitor time-series, dual-axis visitor-versus-temperature comparisons, full Pearson correlation heat-maps over all weather variables, and visitor-distribution histograms along with weather scatter plots. In this context, there are a total of 64 figures under EDA_Grafikleri/, plus clean weekly-visitor bar charts under EDA_GRAPHS_HUMAN_DENSITY/.
 
 ## 5. Hypothesis Tests
+Second, three statistical hypothesis tests quantify what actually drives weekly visitor numbers: a Pearson correlation between temperature and visitors (significant in 17 of 18 sites), a Welch's t-test comparing rainy and dry weeks (significant in 7 of 18 sites), and a Chi-square test of independence between visitor-volume class and precipitation sensitivity (no association, p = 1.0). The combined result is that temperature is a near-universal driver, while precipitation matters only at highland and outdoor-activity sites whose attraction is the activity itself.
+
 #### A. Relationship Between Temperature and Visitor Numbers 
 > **Method:** Pearson Correlation Test <br>
 > **Objective:** To determine whether air temperature significantly affects the number of visitors to the camping sites.
