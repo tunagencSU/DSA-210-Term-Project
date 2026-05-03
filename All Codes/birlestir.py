@@ -20,9 +20,16 @@ from datetime import date, timedelta
 # ----------------------------------------------------------------------------
 # AYARLAR
 # ----------------------------------------------------------------------------
-HAFTALIK_KLASORU   = "haftalik_veriler"          # 16 haftalık CSV burada
-CAMP_DATA_DOSYASI  = "AA_Camp_data_road___annual_visitors.csv"
-CIKTI_DOSYASI      = "AA_Makine_Ogrenmesi_Hazir_Tum_Veri_YENI.csv"
+# Kodun bulunduğu 'ALL CODES' klasörünün tam yolunu al
+MEVCUT_KLASOR = os.path.dirname(os.path.abspath(__file__))
+
+# Bir üst klasöre (DSA_PROJE_ML) çık
+ANA_KLASOR = os.path.dirname(MEVCUT_KLASOR)
+
+# Yolları ANA_KLASOR üzerinden tanımla
+HAFTALIK_KLASORU   = os.path.join(ANA_KLASOR, "## Merged Data")
+CAMP_DATA_DOSYASI  = os.path.join(ANA_KLASOR, "Fixed Data", "AA_Camp_data_road___annual_visitors.csv")
+CIKTI_DOSYASI      = os.path.join(ANA_KLASOR, "Fixed Data", "AA_Makine_Ogrenmesi_Hazir_Tum_Veri_YENI.csv")
 
 # Haftalık dosyalardaki sütun isimleri (lokasyon prefix'i çıkarıldıktan SONRA)
 HAVA_SUTUNLARI = ["temp", "prcp", "snow", "rain", "wspd", "rhum"]
@@ -123,20 +130,17 @@ for dosya in haftalik_dosyalar:
     df = pd.read_csv(dosya)
 
     # Lokasyon prefix'ini hava sütunlarından tespit et
-    # Örn: "Yedigöller Milli Parkı - Bolu_temp" -> "Yedigöller Milli Parkı - Bolu"
     temp_col = [c for c in df.columns if c.endswith("_temp")]
     if not temp_col:
         print(f"  UYARI: {dosya} içinde _temp sütunu yok, atlanıyor")
         continue
-    prefix = temp_col[0][:-len("_temp")]   # "..._temp" -> "..."
+    prefix = temp_col[0][:-len("_temp")]
 
     # Hava sütunlarını yeniden adlandır
     yeniden_ad = {f"{prefix}_{x}": x for x in HAVA_SUTUNLARI}
     df = df.rename(columns=yeniden_ad)
 
-    # prefix'ten lokasyon adını çıkar (genelde "X - İl" gibi, " - İl" kısmını at)
-    # Camp_data'daki isimle eşleştirmek için normalize karşılaştırması yap.
-    # Önce prefix'in tamamıyla deniyoruz, bulamazsak " - " öncesi kısmı.
+    # prefix'ten lokasyon adını çıkar
     candidates = [prefix, prefix.split(" - ")[0]]
     eslesen = None
     for cand in candidates:
@@ -203,7 +207,6 @@ sira = (
     + sorted(yol_dummies.columns)
     + sorted(bolge_dummies.columns)
 )
-# Mevcut olanlarla sınırla (Ziyaretci_2022/2023 istemezsen otomatik gizlenmesin diye)
 sira = [c for c in sira if c in birlesik.columns]
 birlesik = birlesik[sira]
 

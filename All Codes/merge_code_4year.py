@@ -33,12 +33,24 @@ def girdi_cozumle(kullanici_girdisi):
 # 2. ANA MERGE VE GRUPLAMA FONKSİYONU
 # ==========================================
 def veri_birlestir(isim, ziyaretci_2022, ziyaretci_2023, ziyaretci_2024, ziyaretci_2025):
-    # Girdi Dosyaları
-    yorum_dosyasi = f"---{isim}.csv"
-    hava_dosyasi = f"-- {isim}_final_hava_gunluk.csv"
+    # ------------------------------------------
+    # DOSYA YOLU AYARLAMALARI
+    # ------------------------------------------
+    # Kodun çalıştığı 'ALL CODES' klasörünün bir üst dizinini (DSA_PROJE_ML) referans alıyoruz
+    ana_dizin = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     
-    # Çıktı Dosyası 
-    haftalik_cikti = f"##{isim}_haftalık_merge.csv"
+    # İlgili girdi ve çıktı klasörlerinin yolları
+    yorum_klasoru = os.path.join(ana_dizin, "--- Google Maps comments")
+    hava_klasoru = os.path.join(ana_dizin, "-- Weather data 2022-2023-2024-2025 daily")
+    cikti_klasoru = os.path.join(ana_dizin, "## Merged data")
+    
+    # Çıktı klasörü (## Merged data) yoksa otomatik oluşturulur
+    os.makedirs(cikti_klasoru, exist_ok=True)
+    
+    # Girdi ve Çıktı Dosya Yolları
+    yorum_dosyasi = os.path.join(yorum_klasoru, f"---{isim}.csv")
+    hava_dosyasi = os.path.join(hava_klasoru, f"-- {isim}_final_hava_gunluk.csv")
+    haftalik_cikti = os.path.join(cikti_klasoru, f"##{isim}_haftalık_merge.csv")
 
     print(f"\n--- {isim.upper()} İÇİN İŞLEMLER BAŞLATILIYOR ---")
     

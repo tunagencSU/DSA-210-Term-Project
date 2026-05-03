@@ -1,5 +1,35 @@
-pandas
-numpy
-meteostat
-matplotlib
-seaborn
+# =============================================================
+# DSA 210 Term Project — A Decision Support Model for Spatial
+# and Temporal Analysis of Camping Sites in the Black Sea Region
+# =============================================================
+# Tested with Python 3.11–3.14
+#
+# Kurulum:
+#     python -m venv venv
+#     source venv/bin/activate      # macOS / Linux
+#     venv\Scripts\activate         # Windows
+#     pip install -r requirements.txt
+# =============================================================
+
+# --- Veri işleme & sayısal hesap ---
+pandas>=2.0
+numpy>=1.24
+
+# --- Makine öğrenmesi (ml.py) ---
+# RandomForestRegressor, TimeSeriesSplit, RandomizedSearchCV, r2_score, mean_absolute_error
+scikit-learn>=1.3
+
+# --- İstatistiksel testler (hypothesis_1.py, hypothesis_2.py) ---
+# pearsonr, ttest_ind (Welch's), chi2_contingency
+scipy>=1.10
+
+# --- Görselleştirme (eda_graphs.py, graph_human_density.py) ---
+matplotlib>=3.7
+seaborn>=0.12
+
+# --- Hava durumu verisi (final_code_daily_4_year.py) ---
+# Meteostat günlük istasyon verisi çekimi için requests'e dolaylı bağımlıdır;
+# pip onu otomatik kurar, ancak bazı macOS Python kurulumlarında SSL sertifika
+# güncellemesi gerekebilir:
+#     /Applications/Python\ 3.x/Install\ Certificates.command
+meteostat>=1.6

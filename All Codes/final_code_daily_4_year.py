@@ -4,6 +4,7 @@ import meteostat as ms
 from datetime import datetime
 import re
 import ssl
+import os
 
 # SSL sertifika doğrulamasını global olarak devre dışı bırakır
 ssl._create_default_https_context = ssl._create_unverified_context
@@ -125,8 +126,6 @@ def hava_durumu_olustur(isim, hedef_rakim, istasyonlar, baslangic, bitis):
         merged_data = merged_data.reindex(gunluk_index)
 
         # Eksikleri doldur ve ağırlıklı ortalama al
-
-        # Eksikleri doldur ve ağırlıklı ortalama al
         for feat in features:
             feat_cols = [c for c in merged_data.columns if c.startswith(f"{feat}_")]
             if not feat_cols: continue
@@ -162,17 +161,24 @@ def hava_durumu_olustur(isim, hedef_rakim, istasyonlar, baslangic, bitis):
     # Dosya Kaydı
     # DEĞİŞİKLİK: Haftalık olanlarla karışmaması için dosya ismine "_gunluk" eklendi
     
+    # YENİ: Çıktı klasörünü bir üst dizinde (DSA_PROJE_ML) tanımla ve yoksa oluştur
+    cikti_klasoru = os.path.join("..", "-- Weather data 2022-2023-2024-2025 daily")
+    os.makedirs(cikti_klasoru, exist_ok=True)
+    
     dosya_adi = f"-- {isim}_final_hava_gunluk.csv"
     
     # İsimdeki geçersiz karakterleri temizle (Windows dosya sistemi hatası almamak için)
     dosya_adi = "".join(c for c in dosya_adi if c.isalnum() or c in (' ', '.', '_', '-'))
     
-    daily_data.to_csv(dosya_adi)
-    print(f"\n BAŞARILI! Günlük veriler '{dosya_adi}' dosyasına kaydedildi!")
+    # YENİ: Tam yolu oluştur (klasör + dosya adı)
+    tam_yol = os.path.join(cikti_klasoru, dosya_adi)
+    
+    daily_data.to_csv(tam_yol)
+    print(f"\n BAŞARILI! Günlük veriler '{tam_yol}' dosyasına kaydedildi!")
 
 # ==========================================
 # 4. ANA ÇALIŞMA DÖNGÜSÜ
-# ==========================================s
+# ==========================================
 if __name__ == "__main__":
     start_date = datetime(2021, 12, 31)
     end_date = datetime(2026, 1, 1)

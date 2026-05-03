@@ -4,13 +4,18 @@ import matplotlib.dates as mdates
 import glob
 import os
 
-# Her ayrı kamp alanı için 2024 ve 2025 yıllarında haftalık tahmini kişi sayısı grafiği (bar chart)
+# Her ayrı kamp alanı için 2022, 2023 2024 ve 2025 yıllarında haftalık tahmini kişi sayısı grafiği (bar chart)
 
 # Grafikler için genel estetik ayarları
 plt.style.use('default')
 
 def grafikleri_temiz_olustur(hedef_klasor):
-    cikti_klasoru = "Kamp_Grafikleri_Temiz"
+    # hedef_klasor "## Merged data" yolunu tuttuğu için, bir üst dizin "DSA_PROJE_ML" olacaktır.
+    ana_klasor = os.path.dirname(hedef_klasor) 
+    
+    # Çıktı klasörünü doğrudan DSA_PROJE_ML içerisine oluşturuyoruz.
+    cikti_klasoru = os.path.join(ana_klasor, "EDA_GRAPHS_HUMAN_DENSİTY")
+    
     if not os.path.exists(cikti_klasoru):
         os.makedirs(cikti_klasoru)
     
@@ -72,7 +77,6 @@ def grafikleri_temiz_olustur(hedef_klasor):
                 end_date = month_data['tarih_baslangic'].max()
                 x_center = start_date + (end_date - start_date) / 2
                 
-                # Sadece Ocak aylarında yılı belirt
                 # Sadece Ocak aylarında yılı belirt
                 if ay == 1:
                     month_label = f"{ay_adlari[ay]} {yil}"

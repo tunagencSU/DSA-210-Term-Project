@@ -6,21 +6,20 @@ import glob
 
 # EDA (Exploratory Data Analysis) Grafikleri Oluşturma, her kamp alanı için 4 adet grafik
 
-# ziyaretçi grafiği
-# ziyaretçi - sıcaklık grafiği (çift eksenli)
-# korelasyon matrisi (heatmap)
-# ziyaretçi dağılımı histogramı ve scatter plotlar (sıcaklık, yağış vs ziyaretçi)
+# 1. Dosya Yollarını Dinamik Olarak Belirle
+# Kodun çalıştığı dizini bul (ALL CODES klasörü)
+mevcut_klasor = os.path.dirname(os.path.abspath(__file__))
 
+# Bir üst dizine çık (DSA_PROJE_ML klasörü)
+ana_klasor = os.path.dirname(mevcut_klasor)
 
-# 1. Kullanıcıdan veri klasörünün yolunu al
-hedef_klasor = input("Lütfen CSV dosyalarının bulunduğu klasörün yolunu (örneğin: C:\\Dosyalar\\Kamp_Verileri) girin: ")
-
-# Tırnak işaretleriyle kopyalama ihtimaline karşı temizlik yap
-hedef_klasor = hedef_klasor.strip('"').strip("'")
+# Girdi ve çıktı klasörlerinin yollarını oluştur
+hedef_klasor = os.path.join(ana_klasor, "## Merged Data")
+output_dir = os.path.join(ana_klasor, "EDA_Grafikleri")
 
 # Klasörün var olup olmadığını kontrol et
 if not os.path.exists(hedef_klasor):
-    print("Hata: Belirtilen klasör bulunamadı. Lütfen yolu kontrol edip tekrar deneyin.")
+    print(f"Hata: '{hedef_klasor}' klasörü bulunamadı. Lütfen klasör yapısını kontrol edin.")
 else:
     # Hedef klasördeki *_haftalık_merge.csv dosyalarını bul
     arama_deseni = os.path.join(hedef_klasor, "*_haftalık_merge.csv")
@@ -31,8 +30,7 @@ else:
     else:
         print(f"Toplam {len(dosya_yollari)} kamp alanı bulundu. Analiz başlatılıyor...\n")
 
-        # Çıktıları düzenli tutmak için veri klasörünün içine bir ana klasör oluştur
-        output_dir = os.path.join(hedef_klasor, "EDA_Grafikleri")
+        # Çıktıları düzenli tutmak için DSA_PROJE_ML içine bir ana klasör oluştur
         os.makedirs(output_dir, exist_ok=True)
 
         for dosya in dosya_yollari:

@@ -66,6 +66,7 @@ warnings.filterwarnings("ignore", message=".*sklearn.utils.parallel.delayed shou
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings('ignore')
 
+import os
 import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestRegressor
@@ -76,7 +77,13 @@ from sklearn.model_selection import TimeSeriesSplit, RandomizedSearchCV
 # ─────────────────────────────────────────────
 # 1. VERİ YÜKLEME VE TEMİZLİK
 # ─────────────────────────────────────────────
-df = pd.read_csv("AA_Makine_Ogrenmesi_Hazir_Tum_Veri_YENI.csv")
+# Bu kod ALL CODES klasöründe; veri ise kardeş klasör Fixed Data içinde.
+# __file__ kullanılarak yol scriptin kendi konumuna göre çözülür,
+# böylece kod hangi dizinden çalıştırılırsa çalıştırılsın CSV bulunur.
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+CSV_PATH = os.path.join(SCRIPT_DIR, "..", "Fixed Data",
+                        "AA_Makine_Ogrenmesi_Hazir_Tum_Veri_YENI.csv")
+df = pd.read_csv(CSV_PATH)
 df = df.sort_values(by=['Lokasyon Adı', 'hafta_indeksi']).reset_index(drop=True)
 
 # Sızıntılı kolonları temizle
