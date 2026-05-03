@@ -75,7 +75,7 @@ The system uses a Random Forest Regressor trained on three years of historical d
 
 The core idea is simple but powerful: instead of predicting absolute visitor numbers directly, the model predicts relative demand in log-space — a ratio of how busy a location is compared to its own yearly average. This isolates seasonal patterns from location size, making the model far more robust across very different locations (e.g., a small plateau vs. a major national park).
 
-#### **Architecture*
+### *Architecture*
 
 The project uses a two-model design:
 
@@ -86,7 +86,7 @@ The project uses a two-model design:
 
 This separation is important: we measure performance with the evaluation model (so the 2025 test is genuinely unseen), but we forecast the future with the production model (so we don't waste a full year of valuable signal).
 
-#### **Feature Engineering*
+### *Feature Engineering*
 
 The model relies on five carefully designed feature families, all built to be leakage-free (no future information leaks into past predictions).
 
@@ -114,7 +114,7 @@ The model relies on five carefully designed feature families, all built to be le
 ### E. Lagged Review Features
 *   4-week and 8-week rolling averages of review counts, shifted by 1 week to prevent leakage.
 
-#### **Modeling Pipeline*
+### *Modeling Pipeline*
 
 The training pipeline runs in five stages:
 
@@ -124,7 +124,7 @@ The training pipeline runs in five stages:
 4.  **Feature Selection:** Features with importance below $0.005$ are dropped to reduce noise.
 5.  **Final Training:** The model is fit with `oob_score=True` for an independent out-of-bag validation signal.
 
-#### **Forecasting Logic*
+### *Forecasting Logic*
 
 When predicting future visitor counts, the model combines two ingredients:
 
@@ -134,7 +134,7 @@ When predicting future visitor counts, the model combines two ingredients:
 
 **Safety Constraint:** A critical safety constraint caps the growth slope at ±15% per year in log-space. Without this cap, locations with a steep 3-year upward trend (like Abant, with slope $\approx 0.546$) would produce unrealistic 4× growth predictions for 2026. Tourism doesn't grow that fast, so we clip extrapolation to a physically plausible range.
 
-#### **Validation Strategy*
+### *Validation Strategy*
 
 The model is validated with multiple independent signals:
 
@@ -143,7 +143,7 @@ The model is validated with multiple independent signals:
 *   **4-fold TimeSeriesSplit CV:** Confirms performance is stable across different train/test splits (Folds 2–4 are reported as stable; Fold 1 is excluded because it has too little training data).
 *   **Per-location performance breakdown:** Locations are categorized into high ($R^2 \geq 0.80$), medium ($0.65 \leq R^2 < 0.80$), and low ($R^2 < 0.65$) performance tiers, helping identify where the model is most and least reliable.
 
-#### **Why This Design Works*
+### *Why This Design Works*
 
 The model deliberately decouples two different things: **seasonal demand patterns** (handled by the Random Forest) and **long-term location growth** (handled by post-processing). 
 
