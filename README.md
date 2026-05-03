@@ -111,7 +111,7 @@ The model relies on five carefully designed feature families, all built to be le
 *   `lokasyon_olcek`: Location size baseline.
 *   `buyume_x_trend`: Interaction term.
 
-#### E. Lagged Review Features
+### E. Lagged Review Features
 *   4-week and 8-week rolling averages of review counts, shifted by 1 week to prevent leakage.
 
 #### Modeling Pipeline
@@ -128,9 +128,9 @@ The training pipeline runs in five stages:
 
 When predicting future visitor counts, the model combines two ingredients:
 
-$$ \text{growth\_multiplier} = e^{\text{growth\_slope} \times (\text{year} - 2023.5)} $$
-$$ \text{projected\_yearly\_avg} = \text{yearly\_avg\_2022\_2025} \times \text{growth\_multiplier} $$
-$$ \text{final\_prediction} = \text{predicted\_relative\_demand} \times \text{projected\_yearly\_avg} $$
+**growth_multiplier =**exp(growth_slope * (year - 2023.5))
+**projected_yearly_avg =** yearly_avg_2022_2025 * growth_multiplier
+**final_prediction =** predicted_relative_demand * projected_yearly_avg
 
 **Safety Constraint:** A critical safety constraint caps the growth slope at ±15% per year in log-space. Without this cap, locations with a steep 3-year upward trend (like Abant, with slope $\approx 0.546$) would produce unrealistic 4× growth predictions for 2026. Tourism doesn't grow that fast, so we clip extrapolation to a physically plausible range.
 
