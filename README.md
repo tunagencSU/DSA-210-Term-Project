@@ -23,61 +23,96 @@ Since there is no centralized data set which can contain all the specific parame
 ## 4. Exploratory Data Analysis (EDA)
 First, exploratory data analysis is performed on each of the 16 campsites: per-site weekly visitor time-series, dual-axis visitor-versus-temperature comparisons, full Pearson correlation heat-maps over all weather variables, and visitor-distribution histograms along with weather scatter plots. In this context, there are a total of 64 figures under EDA_Grafikleri/, plus clean weekly-visitor bar charts under EDA_GRAPHS_HUMAN_DENSITY/.
 
-### 5. Hipotez Testleri (Hypothesis Tests)
+## 5. Hypothesis Tests
 
-Analiz süreci boyunca ziyaretçi sayılarındaki çarpık dağılım (skewed distribution) ve mevsimsel etkileri (sıcaklığın ve ziyaretçi sayısının yazın aynı anda artması gibi) hesaba katmak amacıyla beş farklı hipotez testi kurgulanmıştır. 
-
-Testlerde parametrik olmayan (non-parametric) ve randomizasyon tabanlı yöntemler tercih edilmiştir. A, B ve C testlerinde, çoklu karşılaştırmalarda hata payını kontrol altında tutmak için **Benjamini-Hochberg FDR düzeltmesi** uygulanmıştır. P-değerleri için raporlanan "$< 0.0001$" ifadesi, 10.000 permütasyonun çözünürlük limitini temsil etmektedir.
-
-#### A. Mevsim Kontrollü Sıcaklık Etkisi
-* **Yöntem:** Spearman korelasyonu ile Tabakalı Permütasyon Testi (Stratified Permutation Test - 10.000 iterasyon)
-* **H0:** Mevsim etkisi sabit tutulduğunda, sıcaklık ve ziyaretçi sayıları arasında ilişki yoktur.
-* **H1:** Mevsim etkisi kontrol edildiğinde dahi sıcaklık ve ziyaretçi sayıları ilişkilidir.
-* **Sonuç:** FDR düzeltmesi sonrası 16 lokasyonun tamamında (16/16) H0 reddedilmiştir. Spearman *r* değerleri 0.46 ile 0.91 arasında değişmektedir.
-* **Temel Bulgusu:** Sıcaklık, mevsimsel kalıplardan bağımsız olarak güçlü bir tahminleyicidir; bu durum modeldeki `temp` ve `temp_kare` özniteliklerini doğrular.
-
-#### B. Yağışın Ziyaretçiler Üzerindeki Etkisi
-* **Yöntem:** Mann-Whitney U Testi (FDR düzeltmeli)
-* **H0:** Ziyaretçi dağılımları yağışlı ve yağışsız haftalar arasında eşittir.
-* **H1:** Dağılımlar arasında anlamlı bir fark vardır.
-* **Sonuç:** FDR düzeltmesi sonrası 16 lokasyonun 6'sında H0 reddedilmiştir.
-* **Temel Bulgusu:** Yağış hassasiyeti lokasyona bağlıdır. Özellikle Doğu Karadeniz yaylalarında yağışın çok sık olması bu ayrımı anlamsız kılarken, Batı ve Orta Karadeniz lokasyonlarında yağışın ziyaretçi sayıları üzerinde belirgin bir etkisi olduğu saptanmıştır.
-
-#### C. Mevsimsel Etki (Seasonal Effect)
-* **Yöntem:** Kruskal-Wallis H Testi (FDR düzeltmeli)
-* **H0:** Medyan ziyaretçi sayıları dört mevsim boyunca eşittir.
-* **H1:** En az bir mevsimin medyanı diğerlerinden farklıdır.
-* **Sonuç:** 16 lokasyonun tamamında H0 reddedilmiştir (Global test: H=1033.73, p≈8.7×10⁻²²⁴). Yaz ayları medyanı, diğer mevsimlerden 5 ila 30 kat daha fazladır.
-* **Temel Bulgusu:** Mevsim, evrensel bir tahminleyicidir; bu durum `mevsim` ve döngüsel zaman kodlamalarının önemini doğrular.
-
-#### D. Bölge × Yağış Hassasiyeti
-* **Yöntem:** Ki-Kare Bağımsızlık Testi (Chi-Square Test of Independence)
-* **H0:** Coğrafi bölge ile "yağışlı haftada düşük ziyaretçi" durumu birbirinden bağımsızdır.
-* **H1:** Bölge ve yağış hassasiyeti ilişkilidir.
-* **Detay:** Analiz birimi olarak 3.360 haftalık kayıt kullanılarak beklenen frekans varsayımı (min=375) karşılanmıştır.
-* **Sonuç:** χ²=0.116, p=0.944, Cramér's V=0.0059. H0 kabul edilmiştir.
-* **Temel Bulgusu:** Karadeniz'in üç alt bölgesi de benzer yağış hassasiyeti göstermektedir (~%44-45). Bu nedenle ML modelinde bölge bazlı bir yağış etkileşim özniteliğine (Region × prcp interaction) gerek duyulmamıştır.
-
-#### E. Makine Öğrenmesi Modelinde Hava Durumu Özniteliklerinin Önemi
-* **Yöntem:** Model performansı üzerinde Permütasyon Testi (100 iterasyon)
-* **H0:** Hava durumu öznitelikleri model doğruluğuna katkı sağlamaz.
-* **H1:** Hava durumu öznitelikleri model doğruluğuna anlamlı katkı sağlar.
-* **Sonuç:** Gözlemlenen R²=0.194 (Baz model) vs. Ortalama boş R²=-0.178. ΔR²=+0.372, p<0.01.
-* **Temel Bulgusu:** Hava durumu verileri model performansını istatistiksel olarak anlamlı düzeyde artırmaktadır.
+A set of five hypothesis tests was designed using non-parametric and randomization-based methods to account for the skewed distribution of visitor counts, non-normal data, and seasonal confounding (e.g., summer raising both temperature and visitors). Tests A, B, and C apply Benjamini-Hochberg FDR correction — a p-value adjustment method that controls the false-positive rate across multiple tests. P-values reported as < 0.0001 reflect the resolution limit of 10,000 permutations.
 
 ---
 
-### Özet Tablo
+#### A. Season-Controlled Temperature Effect
+> **Method:** Stratified Permutation Test with Spearman correlation (10,000 iterations)
 
-| Test | Yöntem | Sonuç |
+* **$H_0$:** When season is held constant, temperature and visitors are unrelated.
+* **$H_1$:** Temperature and visitors are related even when season is controlled.
+
+Temperatures were permuted *within* each season group, isolating the genuine temperature effect from seasonal confounding.
+
+**Result:** $H_0$ rejected in **16 of 16** sites after FDR correction. Spearman $r$ ranged from $0.46$ to $0.91$.
+
+**Key Finding:** Temperature is a strong predictor independent of seasonal patterns, validating `temp` and `temp_kare` features in the ML model.
+
+---
+
+#### B. Precipitation Effect on Visitors
+> **Method:** Mann-Whitney U Test with FDR correction
+
+* **$H_0$:** Visitor distributions are equal between rainy and non-rainy weeks.
+* **$H_1$:** The distributions differ.
+
+The non-parametric alternative to the t-test, suitable for skewed data.
+
+**Result:** $H_0$ rejected in **6 of 16** sites after FDR correction 
+
+**Key Finding:** Precipitation sensitivity is location-dependent. In Eastern Black Sea plateaus, rain occurs in 190+/210 weeks, making the rainy/non-rainy distinction nearly meaningless. The effect is real in Western/Central sites where rain is a discrete event.
+
+---
+
+#### C. Seasonal Effect on Visitors
+> **Method:** Kruskal-Wallis H Test with FDR correction
+
+* **$H_0$:** Median visitor counts are equal across the four seasons.
+* **$H_1$:** At least one season's median differs.
+
+The non-parametric ANOVA alternative — necessary because variance is dramatically higher in summer.
+
+**Result:** $H_0$ rejected in **16 of 16** sites. Global test: $H = 1033.73$, $p \approx 8.7 \times 10^{-224}$. Summer medians exceed other seasons by 5–30×.
+
+**Key Finding:** Season is a near-universal predictor, validating `mevsim`, cyclical time encodings, and seasonal pattern features.
+
+---
+
+#### D. Region × Precipitation Sensitivity
+> **Method:** Chi-Square Test of Independence
+
+* **$H_0$:** Region and "low-visitor-on-rainy-week" status are independent.
+* **$H_1$:** They are associated.
+
+The unit of analysis was changed from location-level (n=4) to week-location records (n=3,360), satisfying the expected-frequency assumption (min expected = 375).
+
+**Result:** $\chi^2 = 0.116$, $p = 0.944$, Cramér's $V = 0.0059$. $H_0$ accepted.
+
+**Key Finding:** All three regions show ~44–45% "rainy weeks with below-median visitors" — region does not modulate precipitation sensitivity. A `Region × prcp` interaction feature is unnecessary in the ML model.
+
+---
+
+#### E. Statistical Significance of Weather Features in the ML Model
+> **Method:** Permutation Test on model performance (×100 iterations)
+
+* **$H_0$:** Weather features do not contribute to model accuracy.
+* **$H_1$:** Weather features contribute significantly.
+
+Weather columns were jointly permuted to break their relationship with visitors while preserving inter-correlations among weather variables themselves.
+
+**Result:**
+* Observed $R^2 = 0.194$ vs. mean null $R^2 = -0.178$
+* $\Delta R^2 = +0.372$, $p < 0.01$ (0/100 null permutations exceeded observed)
+
+**Key Finding:** Weather features make a statistically significant contribution, directly supporting the project's core premise. ($R^2 = 0.19$ here reflects a simplified RF without engineered features; the production model achieves substantially higher performance.)
+
+---
+
+### Summary
+
+| Test | Method | Result |
 | :--- | :--- | :--- |
-| **A. Mevsim Kontrollü Sıcaklık** | Stratified Permutation | 16/16 Anlamlı |
-| **B. Yağış Etkisi** | Mann-Whitney U + FDR | 6/16 Anlamlı |
-| **C. Mevsimsel Etki** | Kruskal-Wallis + FDR | 16/16 Anlamlı |
-| **D. Bölge × Yağış Etkileşimi** | Ki-Kare (n=3.360) | Anlamlı Değil |
-| **E. ML Hava Durumu Katkısı** | R² Permütasyon Testi | p < 0.01 |
+| A. Season-controlled temperature | Stratified Permutation | 16/16 significant |
+| B. Precipitation | Mann-Whitney U + FDR | 6/16 significant |
+| C. Seasonal effect | Kruskal-Wallis + FDR | 16/16 significant |
+| D. Region × precipitation | Chi-Square (n=3,360) | Not significant |
+| E. ML weather contribution | Permutation on $R^2$ | $p < 0.01$ |
 
 Temperature and season are universal drivers, precipitation contributes location-specific signal, and weather as a whole significantly improves predictive accuracy.
+
 
 ## 6. Machine Learning Model
 
