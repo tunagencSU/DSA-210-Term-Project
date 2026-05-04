@@ -24,50 +24,97 @@ Since there is no centralized data set which can contain all the specific parame
 First, exploratory data analysis is performed on each of the 16 campsites: per-site weekly visitor time-series, dual-axis visitor-versus-temperature comparisons, full Pearson correlation heat-maps over all weather variables, and visitor-distribution histograms along with weather scatter plots. In this context, there are a total of 64 figures under EDA_Grafikleri/, plus clean weekly-visitor bar charts under EDA_GRAPHS_HUMAN_DENSITY/.
 
 ## 5. Hypothesis Tests
-Second, three statistical hypothesis tests quantify what actually drives weekly visitor numbers: a Pearson correlation between temperature and visitors (significant in 17 of 18 sites), a Welch's t-test comparing rainy and dry weeks (significant in 7 of 18 sites), and a Chi-square test of independence between visitor-volume class and precipitation sensitivity (no association, p = 1.0). The combined result is that temperature is a near-universal driver, while precipitation matters only at highland and outdoor-activity sites whose attraction is the activity itself.
 
-#### A. Relationship Between Temperature and Visitor Numbers 
-> **Method:** Pearson Correlation Test <br>
-> **Objective:** To determine whether air temperature significantly affects the number of visitors to the camping sites.
+An initial round of hypothesis testing revealed several methodological issues: Pearson correlation ignored the skewed distribution of visitor counts, the Welch's t-test violated normality, the Chi-square test was applied at an aggregated level (n=4) violating expected-frequency assumptions, and no multiple-comparison correction was applied across 16 location-wise tests. Seasonal confounding (summer raises both temperature and visitors) was also uncontrolled.
 
-* **$H_0$ (Null Hypothesis):** There is no statistically significant relationship between temperature and the number of visitors.
-* **$H_1$ (Alternative Hypothesis):** There is a statistically significant relationship between temperature and the number of visitors.
-
-**Result and Interpretation:**
-The $H_0$ hypothesis was rejected in **17** of the 18 camping sites analyzed ($p < 0.05$). The relationship was found to be insignificant in only 1 location.
-
-**Key Finding:** Temperature is the strongest and most universal meteorological factor determining visitor density in Black Sea camping sites. As the weather warms up, the demand for camping sites increases in a statistically clear and measurable way. Temperature serves as the primary predictive variable for our modeling.
+A revised set of five tests was designed using non-parametric and randomization-based methods. Tests A, B, and C apply **Benjamini-Hochberg FDR correction** — a p-value adjustment method (not a hypothesis test) that controls the false-positive rate across multiple tests. P-values reported as "$< 0.0001$" reflect the resolution limit of 10,000 permutations.
 
 ---
 
-#### B. Relationship Between Precipitation and Visitor Numbers
-> **Method:** Independent Samples Welch's T-Test <br>
-> **Objective:** To determine if there is a significant difference in the number of visitors between rainy and non-rainy weeks.
+#### A. Season-Controlled Temperature Effect
+> **Method:** Stratified Permutation Test with Spearman correlation (10,000 iterations)
 
-* **$H_0$:** The visitor averages for rainy and non-rainy weeks are equal (Precipitation has no effect).
-* **$H_1$:** There is a significant difference in the visitor averages between rainy and non-rainy weeks.
+* **$H_0$:** When season is held constant, temperature and visitors are unrelated.
+* **$H_1$:** Temperature and visitors are related even when season is controlled.
 
-**Result and Interpretation:**
-The $H_0$ hypothesis was rejected in **7** of the 18 camping sites analyzed (e.g., *Ayder Yaylası, Borçka Karagöl, Elevit Yaylası*), proving that precipitation has a significant effect on the number of visitors. In the remaining **11 camping sites**, no statistically significant difference was found.
+Temperatures were permuted *within* each season group, isolating the genuine temperature effect from seasonal confounding.
 
-**Key Finding:** Unlike temperature, precipitation does not affect every camping site equally. While some camping sites show high "sensitivity" to precipitation and lose visitors, others maintain their visitor base even in rainy weather. This variance likely depends on external factors such as physical infrastructure (availability of indoor areas), transportation difficulty, or visitor profile (adventurous vs. day-tripper).
+**Result:** $H_0$ rejected in **16 of 16** sites after FDR correction. Spearman $r$ ranged from $0.46$ to $0.91$.
+
+**Key Finding:** Temperature is a strong predictor independent of seasonal patterns, validating `temp` and `temp_kare` features in the ML model.
 
 ---
 
-#### C. Visitor Volume and Precipitation Sensitivity
-> **Method:** Chi-Square Test of Independence <br>
-> **Objective:** To examine whether we can make a general deduction such as *"camping sites that are visited more frequently (popular) are affected more/less by precipitation."*
+#### B. Precipitation Effect on Visitors
+> **Method:** Mann-Whitney U Test with FDR correction
 
-* **$H_0$:** The visitor volume category (Above/Below Median) and precipitation sensitivity are independent of each other (No relationship).
-* **$H_1$:** There is a significant relationship between the visitor category and precipitation sensitivity.
+* **$H_0$:** Visitor distributions are equal between rainy and non-rainy weeks.
+* **$H_1$:** The distributions differ.
 
-**Result and Interpretation:**
-* **Test Statistic:** $\chi^2 = 0.0000$
-* **P-Value:** $1.0000$
+The non-parametric alternative to the t-test, suitable for skewed data.
 
-Since the calculated p-value is greater than $0.05$, **the $H_0$ hypothesis is accepted.**
+**Result:** $H_0$ rejected in **6 of 16** sites after FDR correction (vs. 7/16 before).
 
-**Key Finding:** Whether a camping site is popular (crowded) or quiet on an annual basis is not a factor that affects its visitor loss on rainy days (precipitation sensitivity). Both crowded and lesser-known quiet camping sites are affected by precipitation in entirely independent ways. 
+**Key Finding:** Precipitation sensitivity is location-dependent. In Eastern Black Sea plateaus, rain occurs in 190+/210 weeks, making the rainy/non-rainy distinction nearly meaningless. The effect is real in Western/Central sites where rain is a discrete event.
+
+---
+
+#### C. Seasonal Effect on Visitors
+> **Method:** Kruskal-Wallis H Test with FDR correction
+
+* **$H_0$:** Median visitor counts are equal across the four seasons.
+* **$H_1$:** At least one season's median differs.
+
+The non-parametric ANOVA alternative — necessary because variance is dramatically higher in summer.
+
+**Result:** $H_0$ rejected in **16 of 16** sites. Global test: $H = 1033.73$, $p \approx 8.7 \times 10^{-224}$. Summer medians exceed other seasons by 5–30×.
+
+**Key Finding:** Season is a near-universal predictor, validating `mevsim`, cyclical time encodings, and seasonal pattern features.
+
+---
+
+#### D. Region × Precipitation Sensitivity
+> **Method:** Chi-Square Test of Independence (corrected version)
+
+* **$H_0$:** Region and "low-visitor-on-rainy-week" status are independent.
+* **$H_1$:** They are associated.
+
+The unit of analysis was changed from location-level (n=4) to week-location records (n=3,360), satisfying the expected-frequency assumption (min expected = 375).
+
+**Result:** $\chi^2 = 0.116$, $p = 0.944$, Cramér's $V = 0.0059$. $H_0$ accepted.
+
+**Key Finding:** All three regions show ~44–45% "rainy weeks with below-median visitors" — region does not modulate precipitation sensitivity. A `Region × prcp` interaction feature is unnecessary in the ML model.
+
+---
+
+#### E. Statistical Significance of Weather Features in the ML Model
+> **Method:** Permutation Test on model performance (×100 iterations)
+
+* **$H_0$:** Weather features do not contribute to model accuracy.
+* **$H_1$:** Weather features contribute significantly.
+
+Weather columns were jointly permuted to break their relationship with visitors while preserving inter-correlations among weather variables themselves.
+
+**Result:**
+* Observed $R^2 = 0.194$ vs. mean null $R^2 = -0.178$
+* $\Delta R^2 = +0.372$, $p < 0.01$ (0/100 null permutations exceeded observed)
+
+**Key Finding:** Weather features make a statistically significant contribution, directly supporting the project's core premise. ($R^2 = 0.19$ here reflects a simplified RF without engineered features; the production model achieves substantially higher performance.)
+
+---
+
+### Summary
+
+| Test | Method | Result |
+| :--- | :--- | :--- |
+| A. Season-controlled temperature | Stratified Permutation | 16/16 significant |
+| B. Precipitation | Mann-Whitney U + FDR | 6/16 significant |
+| C. Seasonal effect | Kruskal-Wallis + FDR | 16/16 significant |
+| D. Region × precipitation | Chi-Square (n=3,360) | Not significant |
+| E. ML weather contribution | Permutation on $R^2$ | $p < 0.01$ |
+
+Temperature and season are universal drivers, precipitation contributes location-specific signal, and weather as a whole significantly improves predictive accuracy.
+
 
 ## 6. Machine Learning Model
 
@@ -152,7 +199,7 @@ This separation matters because seasonal patterns are highly predictable from hi
 A final health check at the end of the pipeline scores the model on six dimensions (test $R^2$, overfitting gap, OOB score, CV consistency, leakage status, production readiness) and produces an overall score out of 100.
 
 
-## 6. Academic Integrity & AI Disclosure
+## 7. Academic Integrity & AI Disclosure
 
 In accordance with the academic integrity guidelines of the DSA 210 course, I declare that AI tools (e.g., LLMs) were utilized to assist with the code generation, data processing, and text refinement stages of this project. 
 
