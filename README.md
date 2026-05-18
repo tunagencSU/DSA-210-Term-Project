@@ -25,7 +25,7 @@ First, exploratory data analysis is performed on each of the 16 campsites: per-s
 
 ## 4. Hypothesis Tests
 
-Before jumping into feature engineering, I ran five hypothesis tests to double-check the assumptions I was building my model on. Since the visitor data is skewed a lot and season plays a huge role (summer brings both high temperatures and lots of people, so a basic correlation wouldn't work), I used non-parametric and randomization-based methods. For tests A, B, and C, I used the Benjamini–Hochberg FDR correction to handle multiple testing.
+Before applying the feature engineering, five hypothesis tests ranned to double-check the assumptions. Since the visitor data is skewed a lot and season plays a huge role in estimation (summer brings both high temperatures and lots of people, so a basic correlation wouldn't work), non-parametric and randomization-based methods used. For tests A, B, and C, also Benjamini–Hochberg FDR correction used to handle multiple testing.
 
 ### A. Season-controlled temperature effect
 
@@ -97,7 +97,7 @@ The system uses a Random Forest Regressor in a two-model setup:
 | Evaluation Model (`rf_model`) | 2022 – 2024 (1,680 rows) | Reports honest performance (R², MAE) on held-out 2025 |
 | Production Model (`rf_production`) | 2022 – 2025 (2,528 rows) | Generates forecasts for 2026+ using the freshest data |
 
-The most important design choice in the whole project: instead of predicting absolute visitor numbers directly, the model predicts *relative demand in log-space* — basically a ratio of how busy a location is compared to its own annual average. The reason is that seasonal patterns generalize well across locations (summer is busier everywhere), but location size does not (Abant gets way more visitors than Şaşvat Karagöl). By decoupling these two things and reconstructing the absolute forecast at the end through multiplication, the model can transfer seasonal knowledge across locations without getting confused by scale differences.
+The most important design choice in this project was to predict relative demand rather than absolute visitor numbers. Essentially, the model predicts how busy a location is compared to its own yearly average. This is because seasonal patterns are similar everywhere, but the total number of visitors varies greatly (for example, Abant vs. Şavşat Karagöl). By separating the seasonal trend from the location's actual size, the model can easily apply seasonal knowledge to all sites without being confused by scale differences.
 
 ### Feature engineering (48 → 17 selected features)
 
@@ -143,11 +143,11 @@ projected_yearly_avg = yearly_avg_2022_2025 × growth_multiplier
 final_prediction    = predicted_relative_demand × projected_yearly_avg × open_ratio_mask
 ```
 
-I added two safety constraints to this:
+I applied two safety constraints to the model. 
 
-The growth slope is capped at ±15% per year in log-space. Without this cap, locations with steep recent trends (e.g. Abant, slope ≈ 0.546) would predict around 4× growth for 2026, which is clearly unrealistic.
+First, the annual growth is limited to ±15%. Without this constraints, locations with fast recent growth would give unrealistic 4x growth predictions for 2026. 
 
-There's an open-ratio mask that zeroes out predictions for weeks when the site has historically been closed (e.g. winter at high-altitude plateaus). This was actually the biggest fix from v1 of the model — before this mask, the model would predict 1,000–3,000 visitors for weeks when the actual count was zero. Adding the mask was a small change but it made a noticeable difference in the MAE.
+Second, a mask used to forces predictions to zero for weeks when a location is historically closed (such as winter months at high plateaus).
 
 ### Validation strategy
 
@@ -171,7 +171,7 @@ The model gets validated through four independent signals:
 | Train–Test gap | — | 0.068 (no overfitting) |
 | OOB R² (log-space) | — | 0.845 |
 
-The Test R² of 0.88 is above my 0.85 target. The Train–Test gap of 0.068 is well below the 0.10 threshold, and the OOB score backs up that the model is not overfit. The total prediction deviation across all of 2025 is +5.3%, so the model is slightly optimistic in aggregate but not systematically biased.
+Our Test R² is 0.88, successfully passing the target 0.85. Also the gap between the training and test scores is very low confirming that the model is not overfitting. In the year 2025, the total estimations were about 5.3% higher than the actual data. This shows the model is a bit optimistic but accurate and unbiased at general."
 
 ### Cross-validation results
 
@@ -183,35 +183,36 @@ The Test R² of 0.88 is above my 0.85 target. The Train–Test gap of 0.068 is w
 | Fold 4 | 2,023 | 505 | 0.878 | 2,655 |
 | **Mean (Folds 2–4)** | — | — | **0.847 ± 0.041** | **2,152** |
 
-Fold 1 looks bad on the surface but the reason is actually structural, not a bug. The seasonal pattern features need at least one full year of past history to compute, and Fold 1 simply doesn't have enough past data for that. Folds 2 through 4 are very stable at R² ≈ 0.85, which matches the held-out 2025 result. The production model is trained on all four years so it doesn't have this cold-start problem.
+Fold 1 appears to have poor results, but this is a structural issue, not a bug in the code. Fold 1 has not enough data to train itself and estimate properly (it is just a test result to show that the accuracy is increasing while the data set increasing, so it means it uses the data properly).
 
 ### Per-location performance (sorted by R²)
 
 | Tier | Location | R² | MAE | Avg. Visitors | MAE % |
 |---|---|---|---|---|---|
-| 🟢 High | Hıdırnebi yaylası | 0.918 | 912 | 3,774 | 24.2% |
-| 🟢 High | Erfelek Tatlıca Şelaleleri | 0.894 | 1,681 | 6,038 | 27.8% |
-| 🟢 High | Borçka Karagöl Tabiat Parkı | 0.890 | 470 | 1,779 | 26.4% |
-| 🟢 High | Perşembe Yaylası | 0.883 | 6,388 | 26,415 | 24.2% |
-| 🟢 High | Şahinkaya Kanyonu | 0.848 | 1,185 | 3,774 | 31.4% |
-| 🟢 High | Kümbet yaylası | 0.847 | 1,518 | 4,717 | 32.2% |
-| 🟢 High | Şaşvat Karagöl | 0.829 | 298 | 868 | 34.3% |
-| 🟢 High | Elevit Yaylası | 0.829 | 381 | 1,038 | 36.7% |
-| 🟢 High | Horma Kanyonu | 0.813 | 1,652 | 6,038 | 27.4% |
-| 🟡 Mid | Kuzalan Şelalesi Tabiat Parkı | 0.753 | 972 | 2,547 | 38.2% |
-| 🟡 Mid | Yedigöller Milli Parkı | 0.738 | 2,331 | 6,611 | 35.3% |
-| 🟡 Mid | Ulugöl Tabiat Parkı | 0.679 | 2,381 | 5,661 | 42.1% |
-| 🔴 Low | Güzeldere Şelalesi Tabiat Parkı | 0.645 | 750 | 2,741 | 27.4% |
-| 🔴 Low | Gölcük Tabiat Parkı | 0.531 | 2,322 | 8,506 | 27.3% |
-| 🔴 Low | Valla Kanyonu | 0.459 | 1,287 | 2,830 | 45.5% |
-| 🔴 Low | Abant Gölü Tabiat Parkı | 0.413 | 8,836 | 30,224 | 29.2% |
+| High | Hıdırnebi yaylası | 0.918 | 912 | 3,774 | 24.2% |
+| High | Erfelek Tatlıca Şelaleleri | 0.894 | 1,681 | 6,038 | 27.8% |
+| High | Borçka Karagöl Tabiat Parkı | 0.890 | 470 | 1,779 | 26.4% |
+| High | Perşembe Yaylası | 0.883 | 6,388 | 26,415 | 24.2% |
+| High | Şahinkaya Kanyonu | 0.848 | 1,185 | 3,774 | 31.4% |
+| High | Kümbet yaylası | 0.847 | 1,518 | 4,717 | 32.2% |
+| High | Şaşvat Karagöl | 0.829 | 298 | 868 | 34.3% |
+| High | Elevit Yaylası | 0.829 | 381 | 1,038 | 36.7% |
+| High | Horma Kanyonu | 0.813 | 1,652 | 6,038 | 27.4% |
+| Mid | Kuzalan Şelalesi Tabiat Parkı | 0.753 | 972 | 2,547 | 38.2% |
+| Mid | Yedigöller Milli Parkı | 0.738 | 2,331 | 6,611 | 35.3% |
+| Mid | Ulugöl Tabiat Parkı | 0.679 | 2,381 | 5,661 | 42.1% |
+| Low | Güzeldere Şelalesi Tabiat Parkı | 0.645 | 750 | 2,741 | 27.4% |
+| Low | Gölcük Tabiat Parkı | 0.531 | 2,322 | 8,506 | 27.3% |
+| Low | Valla Kanyonu | 0.459 | 1,287 | 2,830 | 45.5% |
+| Low | Abant Gölü Tabiat Parkı | 0.413 | 8,836 | 30,224 | 29.2% |
 
 Summary:
-- 🟢 High performance (R² ≥ 0.80): 9 of 16 sites, mean R² = 0.861
-- 🟡 Mid performance (0.65 ≤ R² < 0.80): 3 of 16 sites, mean R² = 0.723
-- 🔴 Low performance (R² < 0.65): 4 of 16 sites, mean R² = 0.512
+- High performance (R² ≥ 0.80): 9 of 16 sites, mean R² = 0.861
+- Mid performance (0.65 ≤ R² < 0.80): 3 of 16 sites, mean R² = 0.723
+- Low performance (R² < 0.65): 4 of 16 sites, mean R² = 0.512
 
-The low-tier sites (Abant, Gölcük, Valla, Güzeldere) tend to be open year-round and have less pronounced seasonal swings. The model's main signal — the seasonal pattern of the same week across past years — is much weaker for these sites because the pattern itself is flatter. Abant especially is a major year-round attraction near Bolu and its visitor numbers are driven more by weekend and holiday dynamics than by season, which the current feature set doesn't capture as cleanly.
+Some camp sites does not have any seasonal patterns (like abant) because these places are generally easy to accsess, therefore people regularly go there in weekends. Since our model depends deeply
+on seasonal patterns and use this to estimate the density, it perform badly at sites like abant.
 
 ### Feature importance
 
@@ -240,7 +241,7 @@ Grouped by category:
 | Other (reviews, location) | 0.037 | 3.7% |
 | Location growth dynamics | 0.000 | 0.0% |
 
-One small note on the last row: `buyume_egimi` (growth slope) was eliminated by feature selection inside the Random Forest, but it's still being used as a post-processing scaling factor in `gelecek_tahmin()`. This was actually intentional — the architecture lets the Random Forest handle *relative* demand (seasonal patterns) while the multiplication step handles *location scale* (growth). Keeping those two roles separate is part of why dropping the low-importance features didn't hurt overall performance.
+A small note on the last row: The variable buyume_egimi (growth slope) was removed by the Random Forest model during run. However, it is still used later in the gelecek_tahmin() function to arrange the final numbers.
 
 ### Key insights
 
@@ -254,7 +255,7 @@ A few patterns stand out from the results:
 
 4. **The seasonal hypothesis is the strongest claim.** Test C showed summer medians 5–30× other seasons in 16/16 sites, and the top three features in the final model are all seasonal pattern features. The chain hypothesis testing → feature design → model performance is internally consistent here, which was satisfying to see.
 
-5. **Forecasts for 2026 look plausible.** Some examples: Perşembe Yaylası in mid-August during a holiday gives 100,521 visitors (vs. annual avg 22,380, growth multiplier 1.26×); Horma Kanyonu in January at -2°C gives 1,332 visitors; Abant Gölü in November gives 55,772 visitors. The model produces sensibly different magnitudes for sensibly different scenarios.
+5. **Forecasts for 2026 look plausible.** Some examples: Perşembe Yaylası in mid-August during a holiday gives 100,521 visitors (vs. annual avg 22,380, growth multiplier 1.26×); Horma Kanyonu in January at -2°C gives 1,332 visitors; Abant Gölü in November gives 55,772 visitors. The model gives different output (in magnitude) in different camp sites. It differ camp to camp.
 
 ### Overall model health: 72 / 100
 
@@ -262,15 +263,15 @@ I ran an end-of-pipeline health check on 9 strict criteria:
 
 | Criterion | Status | Score |
 |---|---|---|
-| Test R² ≥ 0.85 | ✅ 0.880 | 1.0 |
-| Train–test gap < 0.10 | ✅ 0.068 | 1.0 |
-| OOB R² ≥ 0.80 | ✅ 0.845 | 1.0 |
-| Total deviation < ±5% | ➖ +5.3% (acceptable) | 0.5 |
-| R² > 0 in all volume quartiles | ⚠️ Fails on low-volume weeks | 0.0 |
-| Median APE < 25% | ➖ 33.7% (acceptable) | 0.5 |
-| CV consistent across all folds | ➖ Fold 1 weak; Folds 2–4 solid | 0.5 |
-| No data leakage | ✅ Verified | 1.0 |
-| Production readiness | ✅ Full-data model deployed | 1.0 |
+| Test R² ≥ 0.85 | 0.880 | 1.0 |
+| Train–test gap < 0.10 | 0.068 | 1.0 |
+| OOB R² ≥ 0.80 | 0.845 | 1.0 |
+| Total deviation < ±5% | +5.3% (acceptable) | 0.5 |
+| R² > 0 in all volume quartiles | Fails on low-volume weeks | 0.0 |
+| Median APE < 25% | 33.7% (acceptable) | 0.5 |
+| CV consistent across all folds | Fold 1 weak; Folds 2–4 solid | 0.5 |
+| No data leakage | Verified | 1.0 |
+| Production readiness | Full-data model deployed | 1.0 |
 
 The two partial-credit losses are honest acknowledgements rather than bugs — I unpack them in the next section.
 
@@ -280,31 +281,29 @@ The two partial-credit losses are honest acknowledgements rather than bugs — I
 
 ### Limitations
 
-**Visitor counts are proxied, not measured.** Annual totals come from web-scraped news and tourism statistics, and weekly disaggregation relies on Google review density. Silent visitors (people who don't post a review) are systematically underrepresented. A real ground-truth dataset, like entrance gate counts from park authorities, would improve basically everything downstream of this.
+**Visitor counts are proxied, not measured.** The numbers of daily and weekly visitors are estimated from google maps data and estimated annual visitors data. For example: if a camp site has a 1.000.000 visitor in a year and has also 5.000 comments, it means every comment equals to 1.000.000 / 5.000 (this is called alfa number) people. The alfa number multiplied with the number of comment to estimate the daily visitor. 
 
-**Low-volume weeks remain hard.** The volume-quartile breakdown showed the model's R² is +0.80 for high-volume weeks but actually *negative* (R² = -8.9 for the lowest quartile) for low-volume weeks. In plain terms: when actual visitors are very low (winter or shoulder-season weeks), small absolute errors translate into large *relative* errors, and just predicting the bucket mean would do better than the model. The open-ratio mask reduces this but doesn't eliminate it.
+**Low-volume weeks remain hard.** This model estimating good in busy weeks however it cannot estimate the weeks with few visitors properly. When visitor numbers are extremely low, even small errors look huge. Therefore, in these quiet times, just using the average number gives better results than the model. the 'open-ratio mask' applied to reduce this problem, but it doesn't solve it.
 
-**Spatial interpolation adds uncertainty for high-altitude sites.** Several plateaus don't have a nearby weather station, so weather has to be interpolated from the closest one. The microclimate of a high-altitude plateau can genuinely differ from the station closest to it, so this is a real source of error I couldn't fully fix.
+**Spatial interpolation adds uncertainty for high-altitude sites.** There were no weather station near the camp sites used in this project, therefore the data from the closest available stations is used to estimate it. However, high-altitude places have their own unique weather conditions, which make the weather condition different from the stations.
 
-**The growth slope cap at ±15% per year is a tradeoff.** It's a safety constraint, but for genuinely fast-growing sites the cap will systematically underestimate 2026 numbers. Abant's raw slope was around 0.55, which would have given an unrealistic 4× forecast, so the cap was clearly needed — but it's a blunt instrument.
+**The growth slope cap at ±15% per year is a tradeoff.** This limit is a safety measure. However, for really fast-growing camp sites, it causes the 2026 predictions to be lower than reality.
 
 **The 4-year window includes the post-pandemic boom.** 2022–2025 captures the rapid post-COVID recovery in domestic tourism. The seasonal pattern features implicitly assume this trend continues, so a sudden flattening (e.g. economic downturn or new restrictions) would degrade the predictions.
 
-**Social media virality is not modeled.** If a site goes viral on TikTok or Instagram it can see a sudden, structurally unpredictable spike. The model has no way to handle this.
-
-**Holiday encoding is simple.** The `tatil_mi` flag treats all holidays equally, but religious holidays (Ramazan / Kurban Bayramı) and secular national holidays (29 Ekim) almost certainly affect camping demand differently. I didn't separate them in this version.
+**Social media virality is not modeled.** if a camp site become popular suddenly because of social media it is not possible for this model to understand and predict it. Therefore, in some cases if these kind of situation happened before, it may effect the prediction quailty of the model.
 
 ### Future work
 
 A few directions I'd take this if I had more time:
 
-- Mobile cell-tower data or Strava/Komoot heatmaps would give a much better measure of actual human density than review counts, especially for weekdays when reviews tend to lag visits.
-- Sentinel-2 or Landsat satellite imagery combined with simple computer vision (counting vehicles in parking lots) would give a completely independent ground truth.
-- A real-time forecast API built on top of the production model, exposed through the `Local Website/` prototype already included in the repo, would let users query 2026 forecasts directly.
-- Replacing point estimates with confidence intervals using Quantile Regression Forest (10/50/90 percentiles) would be much more useful for actual planning.
-- Multi-output modeling: jointly predicting visitor count, average stay duration, and satisfaction score from forward-looking review sentiment.
-- Generalization to other regions (Toros mountains, Kaçkar interior, Mediterranean coast) — the pipeline should port over with mostly just a data substitution.
-- Disambiguating holiday types: separating religious vs. national vs. school-vacation holidays would likely sharpen the holiday × season interactions.
+More google maps comments: Since it is expensive to gain the google comments with apify, the source is limited. 
+Satellite Images: We could use satellite photos and basic computer vision to count cars in parking lots. This would provide solid, independent data.
+Live API: I would set up a real-time API for the website prototype so users can easily check the 2026 forecasts.
+Prediction Ranges: Giving a range of possibilities instead of a single point estimate would be much more useful for planning.
+Multiple Outputs: The model could predict visitor counts, average stay time, and satisfaction scores all at the same time.
+Other Regions: I would apply this pipeline to other areas, like the Toros Mountains or the Mediterranean coast, simply by changing the dataset.
+Detailed Holidays: Grouping holidays by type (religious, national, or school) would improve the model's accuracy during those periods.
 
 ---
 
@@ -339,7 +338,7 @@ cd "All Codes"
 python ml.py
 ```
 
-Expected runtime is around 2–3 minutes on a modern laptop. The script prints all the metrics reported in Section 6 plus example 2026 predictions.
+Expected runtime is around 2–3 minutes
 
 For the interactive prototype:
 
@@ -352,7 +351,7 @@ cd "Local Website"
 
 ## 9. Academic Integrity and AI Disclosure
 
-In line with the DSA 210 academic integrity guidelines, I want to be transparent: AI tools (Large Language Models) were used during this project for code generation, debugging, data-processing utilities, and text refinement. The conceptual design, feature engineering decisions, hypothesis test selection, and the analysis of results are my own work.
+In line with the DSA 210 academic integrity guidelines, I want to be transparent: AI tools (Large Language Models) were used during this project for code generation, debugging, data-processing utilities, and text refinement. 
 
 All specific prompts I used along with the corresponding generated outputs (chat histories) have been saved and documented, and they're available on request.
 
