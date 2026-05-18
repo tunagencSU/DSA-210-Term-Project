@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Campsite Visitor Prediction · Black Sea Camp Cites</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,700;9..144,900&family=JetBrains+Mono:wght@400;500&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+    /* Palette: assertive, characterful — not pastel "AI slop" */
+    --bg:           #EDE4D3;   /* cream paper */
+    --bg-deep:      #D9CBB3;   /* warmer cream */
+    --ink:          #1F2A26;   /* dark pine green */
+    --ink-soft:     #3A4E45;
+    --moss:         #38513F;   /* moss green */
+    --moss-deep:    #243A30;
+    --ember:        #C75D3E;   /* ember orange */
+    --ember-soft:   #E89067;
+    --stream:       #4A6B7C;   /* stream blue */
+    --shadow:       rgba(31, 42, 38, 0.15);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Manrope', sans-serif;
+    font-weight: 400;
+    line-height: 1.55;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* Topographic contour background (SVG) */
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 800'><g fill='none' stroke='%2338513F' stroke-width='0.6' opacity='0.08'><path d='M0,400 Q200,280 400,400 T800,400'/><path d='M0,360 Q200,240 400,360 T800,360'/><path d='M0,440 Q200,320 400,440 T800,440'/><path d='M0,320 Q200,200 400,320 T800,320'/><path d='M0,480 Q200,360 400,480 T800,480'/><path d='M0,280 Q200,160 400,280 T800,280'/><path d='M0,520 Q200,400 400,520 T800,520'/><path d='M0,240 Q200,120 400,240 T800,240'/><path d='M0,560 Q200,440 400,560 T800,560'/><path d='M0,200 Q200,80 400,200 T800,200'/><path d='M0,600 Q200,480 400,600 T800,600'/></g></svg>");
+    background-size: 100% 100%;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.page {
+    position: relative;
+    z-index: 1;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 56px 32px 96px;
+}
+
+/* ─────────  HEADER  ───────── */
+header {
+    position: relative;
+    padding-bottom: 40px;
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: 56px;
+}
+
+.eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--moss-deep);
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.eyebrow::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--ink);
+    opacity: 0.3;
+}
+
+h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: clamp(48px, 6.5vw, 84px);
+    line-height: 0.96;
+    letter-spacing: -0.025em;
+    margin-bottom: 24px;
+    font-variation-settings: "opsz" 100;
+}
+h1 em {
+    font-style: italic;
+    font-weight: 300;
+    color: var(--ember);
+}
+
+.subtitle {
+    font-size: 18px;
+    max-width: 640px;
+    color: var(--ink-soft);
+    margin-bottom: 32px;
+    font-weight: 400;
+}
+
+.model-stats {
+    display: flex;
+    gap: 40px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--moss-deep);
+    flex-wrap: wrap;
+}
+.model-stats .stat {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.model-stats .stat-label {
+    opacity: 0.65;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 10px;
+}
+.model-stats .stat-value {
+    font-size: 20px;
+    font-weight: 500;
+    font-family: 'Fraunces', serif;
+    color: var(--ink);
+}
+
+/* ─────────  SECTION HEADING  ───────── */
+.section-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+.section-header h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 28px;
+    font-weight: 500;
+    letter-spacing: -0.015em;
+}
+.section-header .count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--moss-deep);
+    letter-spacing: 0.1em;
+}
+
+/* ─────────  CARDS  ───────── */
+.locations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1px;
+    background: var(--ink);
+    border: 1px solid var(--ink);
+}
+
+.location-card {
+    background: var(--bg);
+    padding: 28px 24px 24px;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.2s ease;
+    min-height: 180px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+.location-card:hover:not(.unavailable) {
+    background: var(--bg-deep);
+}
+.location-card.unavailable {
+    cursor: not-allowed;
+    opacity: 0.4;
+}
+
+.card-num {
+    position: absolute;
+    top: 18px;
+    right: 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--moss-deep);
+    opacity: 0.7;
+}
+
+.card-city {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ember);
+    margin-bottom: 12px;
+}
+
+.card-name {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 500;
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+    margin-bottom: 16px;
+    flex: 1;
+}
+
+.card-meta {
+    display: flex;
+    gap: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-soft);
+}
+.card-meta span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.card-unavailable-tag {
+    position: absolute;
+    bottom: 22px;
+    left: 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ember);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+/* ─────────  MODAL / RESULT PANEL  ───────── */
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(31, 42, 38, 0.55);
+    backdrop-filter: blur(6px);
+    z-index: 100;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0;
+}
+.overlay.active {
+    display: flex;
+    animation: fadein 0.3s ease;
+}
+@keyframes fadein {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.panel {
+    background: var(--bg);
+    width: 100%;
+    max-width: 980px;
+    max-height: 92vh;
+    overflow-y: auto;
+    border-top: 3px solid var(--ink);
+    box-shadow: 0 -20px 60px rgba(0,0,0,0.3);
+    animation: slideup 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes slideup {
+    from { transform: translateY(40px); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+}
+
+.panel-header {
+    padding: 32px 40px 24px;
+    border-bottom: 1px solid var(--ink);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 24px;
+}
+.panel-header-text {
+    flex: 1;
+}
+.panel-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ember);
+    margin-bottom: 8px;
+}
+.panel-title {
+    font-family: 'Fraunces', serif;
+    font-size: 36px;
+    font-weight: 500;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+}
+.panel-subtitle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-top: 8px;
+}
+.close-btn {
+    background: none;
+    border: 1px solid var(--ink);
+    color: var(--ink);
+    padding: 10px 14px;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    transition: all 0.15s;
+}
+.close-btn:hover {
+    background: var(--ink);
+    color: var(--bg);
+}
+
+.panel-body {
+    padding: 32px 40px 40px;
+}
+
+/* Loading */
+.loading {
+    text-align: center;
+    padding: 60px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--moss-deep);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+}
+.loading::after {
+    content: '...';
+    display: inline-block;
+    width: 24px;
+    text-align: left;
+    animation: dots 1.4s infinite;
+}
+@keyframes dots {
+    0%, 20%   { content: ''; }
+    40%       { content: '.'; }
+    60%       { content: '..'; }
+    80%, 100% { content: '...'; }
+}
+
+/* Prediction result */
+.prediction-hero {
+    background: var(--ink);
+    color: var(--bg);
+    padding: 40px 36px;
+    margin-bottom: 28px;
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 32px;
+    align-items: center;
+}
+.prediction-hero .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ember-soft);
+    margin-bottom: 12px;
+}
+.prediction-hero .number {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(56px, 9vw, 96px);
+    font-weight: 300;
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+    font-variation-settings: "opsz" 144;
+}
+.prediction-hero .unit {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    margin-left: 18px;
+    opacity: 0.65;
+    font-style: normal;
+    letter-spacing: 0.08em;
+    text-transform: lowercase;
+    vertical-align: baseline;
+}
+.prediction-hero .narrative {
+    border-left: 1px solid rgba(237, 228, 211, 0.3);
+    padding-left: 24px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: rgba(237, 228, 211, 0.85);
+}
+
+.prediction-hero .narrative strong {
+    color: var(--ember-soft);
+    font-weight: 600;
+}
+
+/* Detail grid */
+.detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    margin-bottom: 28px;
+}
+@media (max-width: 700px) {
+    .detail-grid { grid-template-columns: 1fr; }
+    .prediction-hero { grid-template-columns: 1fr; }
+    .prediction-hero .narrative { border-left: none; padding-left: 0; border-top: 1px solid rgba(237, 228, 211, 0.3); padding-top: 20px; }
+}
+
+.detail-section h3 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--moss-deep);
+    margin-bottom: 18px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--ink);
+}
+
+.metric-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.metric-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+}
+.metric-row .name {
+    font-size: 13px;
+    color: var(--ink-soft);
+}
+.metric-row .value {
+    font-family: 'Fraunces', serif;
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+}
+.metric-row .value small {
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-left: 4px;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+/* Daily forecast table */
+.daily-forecast {
+    margin-top: 28px;
+}
+.daily-row {
+    display: grid;
+    grid-template-columns: 1fr repeat(4, auto);
+    gap: 16px;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(31, 42, 38, 0.1);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    align-items: center;
+}
+.daily-row:last-child { border-bottom: none; }
+.daily-row .day-date {
+    color: var(--moss-deep);
+    font-weight: 500;
+}
+.daily-row .day-temp {
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--ink);
+}
+.daily-row .day-meta {
+    color: var(--ink-soft);
+}
+
+.daily-row.weekend {
+    background: rgba(199, 93, 62, 0.04);
+}
+
+/* Error */
+.error-box {
+    background: rgba(199, 93, 62, 0.1);
+    border-left: 3px solid var(--ember);
+    padding: 20px 24px;
+    margin: 20px 0;
+    font-size: 14px;
+}
+.error-box strong {
+    display: block;
+    margin-bottom: 6px;
+    font-family: 'Fraunces', serif;
+    font-size: 16px;
+}
+
+/* Footer */
+footer {
+    margin-top: 80px;
+    padding-top: 32px;
+    border-top: 1px solid var(--ink);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-soft);
+    letter-spacing: 0.08em;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+
+    <header>
+        <div class="eyebrow">Black Sea Camp Cites · 2026</div>
+        <h1>How many guests will your campsite <br> <em>host next week?</em></h1>
+        <p class="subtitle">
+            This model is a visitor count prediction mechanism for the 16 campsites listed below. 
+            If you click on the tiles below, you can see the weekly visitor count prediction and weather averages 
+            for the week starting exactly 7 days from today.
+        </p>
+        <div class="model-stats" id="modelStats">
+            </div>
+    </header>
+
+    <div class="section-header">
+        <h2>Locations</h2>
+        <div class="count" id="locCount"></div>
+    </div>
+
+    <div class="locations-grid" id="locationsGrid">
+        </div>
+
+    <footer>
+        <span>Prediction model: Random Forest · Training: 2022-2025</span>
+        <span>Weather: open-meteo.com</span>
+    </footer>
+</div>
+
+
+<div class="overlay" id="overlay" onclick="closeOverlay(event)">
+    <div class="panel" onclick="event.stopPropagation()">
+        <div class="panel-header">
+            <div class="panel-header-text">
+                <div class="panel-eyebrow" id="panelCity">···</div>
+                <div class="panel-title" id="panelTitle">···</div>
+                <div class="panel-subtitle" id="panelSubtitle">···</div>
+            </div>
+            <button class="close-btn" onclick="closeOverlay()">CLOSE ×</button>
+        </div>
+        <div class="panel-body" id="panelBody">
+            <div class="loading">Fetching weather data</div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+let locations = [];
+
+async function loadLocations() {
+    const resp = await fetch('/api/locations');
+    const data = await resp.json();
+    locations = data.locations;
+    renderModelStats(data.model_info);
+    renderLocations();
+}
+
+function renderModelStats(info) {
+    const el = document.getElementById('modelStats');
+    el.innerHTML = `
+        <div class="stat">
+            <span class="stat-label">Test R²</span>
+            <span class="stat-value">${info.test_r2.toFixed(3)}</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">Test MAE</span>
+            <span class="stat-value">±${info.test_mae.toLocaleString('en-US')}</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">Training rows</span>
+            <span class="stat-value">${info.n_train.toLocaleString('en-US')}</span>
+        </div>
+    `;
+}
+
+function renderLocations() {
+    const grid = document.getElementById('locationsGrid');
+    document.getElementById('locCount').textContent =
+        `${locations.length} LOCATIONS`;
+
+    grid.innerHTML = locations.map(loc => {
+        const numStr = String(loc.id + 1).padStart(2, '0');
+        return `
+        <div class="location-card" onclick="predict(${loc.id})">
+            <div class="card-num">${numStr}</div>
+            <div>
+                <div class="card-city">${loc.city}</div>
+                <div class="card-name">${loc.name}</div>
+            </div>
+            <div class="card-meta">
+                <span>↑ ${loc.elevation_m} m</span>
+                <span>◎ ${loc.latitude.toFixed(2)}, ${loc.longitude.toFixed(2)}</span>
+            </div>
+        </div>
+        `;
+    }).join('');
+}
+
+async function predict(locId) {
+    const loc = locations[locId];
+    document.getElementById('panelCity').textContent = loc.city.toUpperCase();
+    document.getElementById('panelTitle').textContent = loc.name;
+    document.getElementById('panelSubtitle').textContent = 'Preparing prediction...';
+    document.getElementById('panelBody').innerHTML =
+        '<div class="loading">Fetching forecast from Open-Meteo</div>';
+    document.getElementById('overlay').classList.add('active');
+    document.body.style.overflow = 'hidden';
+
+    try {
+        const resp = await fetch(`/api/predict?id=${locId}`);
+        const data = await resp.json();
+        if (!resp.ok) {
+            renderError(data.error || 'Unknown error', data.detail);
+            return;
+        }
+        renderPrediction(data);
+    } catch (e) {
+        renderError('Connection error', e.message);
+    }
+}
+
+function renderError(msg, detail) {
+    const body = document.getElementById('panelBody');
+    body.innerHTML = `
+        <div class="error-box">
+            <strong>${msg}</strong>
+            ${detail ? `<div>${detail}</div>` : ''}
+        </div>
+    `;
+}
+
+function renderPrediction(d) {
+    const p = d.prediction;
+    const w = d.weather;
+    const dr = d.date_range;
+    const h = d.holiday;
+
+    document.getElementById('panelSubtitle').textContent =
+        `${formatDate(dr.start)} → ${formatDate(dr.end)} · Week ${dr.week_of_year} of ${dr.year}`;
+
+    // Narrative: Put the model's number into context
+    const goreceli = p.goreceli_talep;
+    let mevsimYorum = goreceli > 1.5 ? 'high demand' :
+                      goreceli > 0.9 ? 'medium demand' :
+                      goreceli > 0.4 ? 'low demand' : 'off-season';
+    const acikYorum = p.acik_carpan < 1 ?
+        ` · In previous years <strong>often closed this week</strong> (open-rate ${(p.acik_orani*100).toFixed(0)}%)` : '';
+    const tatilYorum = h.has_holiday ?
+        ` · There are <strong>${h.holiday_days} public holiday(s)</strong> during the week.` : '';
+
+    const body = document.getElementById('panelBody');
+    body.innerHTML = `
+        <div class="prediction-hero">
+            <div>
+                <div class="label">Estimated Visitors</div>
+                <div class="number">${p.tahmin_ziyaretci.toLocaleString('en-US')}<span class="unit">people / week</span></div>
+            </div>
+            <div class="narrative">
+                For this week, the model expects <strong>${mevsimYorum}</strong>.
+                Relative demand: <strong>${goreceli.toFixed(2)}×</strong>
+                (location annual average: ${p.yillik_ort.toLocaleString('en-US')} people,
+                ${dr.year} projection: ${p.yillik_ort_projeksiyon.toLocaleString('en-US')}).${tatilYorum}${acikYorum}
+            </div>
+        </div>
+
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h3>Weather Summary</h3>
+                <div class="metric-list">
+                    <div class="metric-row"><span class="name">Average temperature</span><span class="value">${w.temp.toFixed(1)}<small>°C</small></span></div>
+                    <div class="metric-row"><span class="name">Total precipitation</span><span class="value">${w.prcp.toFixed(1)}<small>mm</small></span></div>
+                    <div class="metric-row"><span class="name">Rain</span><span class="value">${w.rain.toFixed(1)}<small>mm</small></span></div>
+                    <div class="metric-row"><span class="name">Snow (water eq.)</span><span class="value">${w.snow.toFixed(1)}<small>mm</small></span></div>
+                    <div class="metric-row"><span class="name">Wind</span><span class="value">${w.wspd.toFixed(1)}<small>km/h</small></span></div>
+                    <div class="metric-row"><span class="name">Relative humidity</span><span class="value">${w.rhum.toFixed(0)}<small>%</small></span></div>
+                </div>
+            </div>
+            <div class="detail-section">
+                <h3>Model Signals</h3>
+                <div class="metric-list">
+                    <div class="metric-row"><span class="name">Relative demand</span><span class="value">${p.goreceli_talep.toFixed(2)}<small>×</small></span></div>
+                    <div class="metric-row"><span class="name">Seasonal signal</span><span class="value">${p.mevsimsel_sinyal_ort.toFixed(2)}<small>± ${p.mevsimsel_belirsizlik.toFixed(2)}</small></span></div>
+                    <div class="metric-row"><span class="name">Growth multiplier</span><span class="value">${p.buyume_carpani.toFixed(2)}<small>× / ${dr.year}</small></span></div>
+                    <div class="metric-row"><span class="name">Open rate</span><span class="value">${(p.acik_orani*100).toFixed(0)}<small>%</small></span></div>
+                    <div class="metric-row"><span class="name">Holiday</span><span class="value">${h.has_holiday ? 'Yes' : 'No'}<small>${h.has_holiday ? `· ${h.holiday_days} days` : ''}</small></span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="detail-section daily-forecast">
+            <h3>Daily Weather Forecast</h3>
+            ${w.daily.map(day => {
+                const d = new Date(day.date);
+                const isWeekend = (d.getDay() === 0 || d.getDay() === 6);
+                const dayName = d.toLocaleDateString('en-US', { weekday: 'long' });
+                const dateStr = d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+                return `
+                <div class="daily-row ${isWeekend ? 'weekend' : ''}">
+                    <span class="day-date">${dayName.toUpperCase()} · ${dateStr}</span>
+                    <span class="day-temp">${day.temp_mean !== null ? day.temp_mean.toFixed(0) + '°' : '—'}</span>
+                    <span class="day-meta">↓ ${day.temp_min !== null ? day.temp_min.toFixed(0) : '—'}° / ↑ ${day.temp_max !== null ? day.temp_max.toFixed(0) : '—'}°</span>
+                    <span class="day-meta">💧 ${(day.prcp || 0).toFixed(1)}mm</span>
+                    <span class="day-meta">≈ ${(day.wspd_max || 0).toFixed(0)}km/h</span>
+                </div>
+                `;
+            }).join('')}
+        </div>
+    `;
+}
+
+function formatDate(iso) {
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-US', { day: 'numeric', month: 'long' });
+}
+
+function closeOverlay(e) {
+    if (e && e.target !== e.currentTarget) return;
+    document.getElementById('overlay').classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeOverlay();
+});
+
+loadLocations();
+</script>
+
+</body>
+</html>

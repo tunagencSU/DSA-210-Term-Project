@@ -33,3 +33,10 @@ seaborn>=0.12
 # güncellemesi gerekebilir:
 #     /Applications/Python\ 3.x/Install\ Certificates.command
 meteostat>=1.6
+
+flask>=3.0
+pandas>=2.0
+numpy>=1.24
+scikit-learn>=1.3
+requests>=2.31
+

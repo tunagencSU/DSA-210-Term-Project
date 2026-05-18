@@ -4,16 +4,16 @@ import re
 import os
 import ssl
 
-# SSL sertifika doğrulamasını global olarak devre dışı bırakır
+# Globally disables SSL certificate verification
 ssl._create_default_https_context = ssl._create_unverified_context
 
 # ==========================================
-# 1. METİN PARÇALAYICI (INPUT İŞLEYİCİ)
+# 1. TEXT PARSER (INPUT HANDLER)
 # ==========================================
 def girdi_cozumle(kullanici_girdisi):
     """
-    Kullanıcı girdisinden kamp alanının ismini ve 4 yıllık ziyaretçi sayılarını çeker.
-    Örnek: Borçka Karagöl Tabiat Parkı - Artvin 300000 450000 600000 850000
+    Extracts the camp area name and 4 years of visitor counts from the user input.
+    Example: Borçka Karagöl Tabiat Parkı - Artvin 300000 450000 600000 850000
     """
     pattern = r"^(.*?)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)$"
     match = re.match(pattern, kullanici_girdisi.strip())
@@ -26,46 +26,46 @@ def girdi_cozumle(kullanici_girdisi):
         ziyaretci_2025 = int(match.group(5))
         return isim, ziyaretci_2022, ziyaretci_2023, ziyaretci_2024, ziyaretci_2025
     else:
-        print("\nHATA: Girdi formatı anlaşılamadı! Örnek format: Borçka Karagöl - Artvin 300000 450000 600000 850000")
+        print("\nERROR: Input format not recognized! Example format: Borçka Karagöl - Artvin 300000 450000 600000 850000")
         return None, None, None, None, None
 
 # ==========================================
-# 2. ANA MERGE VE GRUPLAMA FONKSİYONU
+# 2. MAIN MERGE AND GROUPING FUNCTION
 # ==========================================
 def veri_birlestir(isim, ziyaretci_2022, ziyaretci_2023, ziyaretci_2024, ziyaretci_2025):
     # ------------------------------------------
-    # DOSYA YOLU AYARLAMALARI
+    # FILE PATH SETUP
     # ------------------------------------------
-    # Kodun çalıştığı 'ALL CODES' klasörünün bir üst dizinini (DSA_PROJE_ML) referans alıyoruz
+    # Reference the parent directory (DSA_PROJE_ML) of the 'ALL CODES' folder where the code runs
     ana_dizin = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     
-    # İlgili girdi ve çıktı klasörlerinin yolları
+    # Paths of the relevant input and output folders
     yorum_klasoru = os.path.join(ana_dizin, "--- Google Maps comments")
     hava_klasoru = os.path.join(ana_dizin, "-- Weather data 2022-2023-2024-2025 daily")
     cikti_klasoru = os.path.join(ana_dizin, "## Merged data")
     
-    # Çıktı klasörü (## Merged data) yoksa otomatik oluşturulur
+    # The output folder (## Merged data) is created automatically if it doesn't exist
     os.makedirs(cikti_klasoru, exist_ok=True)
     
-    # Girdi ve Çıktı Dosya Yolları
+    # Input and output file paths
     yorum_dosyasi = os.path.join(yorum_klasoru, f"---{isim}.csv")
     hava_dosyasi = os.path.join(hava_klasoru, f"-- {isim}_final_hava_gunluk.csv")
     haftalik_cikti = os.path.join(cikti_klasoru, f"##{isim}_haftalık_merge.csv")
 
-    print(f"\n--- {isim.upper()} İÇİN İŞLEMLER BAŞLATILIYOR ---")
+    print(f"\n--- STARTING OPERATIONS FOR {isim.upper()} ---")
     
     if not os.path.exists(yorum_dosyasi):
-        print(f"Kritik Hata: Yorum dosyası bulunamadı! Aranan dosya: '{yorum_dosyasi}'")
+        print(f"Critical Error: Review file not found! Looking for: '{yorum_dosyasi}'")
         return
     if not os.path.exists(hava_dosyasi):
-        print(f"Kritik Hata: Hava durumu dosyası bulunamadı! Aranan dosya: '{hava_dosyasi}'")
+        print(f"Critical Error: Weather file not found! Looking for: '{hava_dosyasi}'")
         return
 
     df_reviews = pd.read_csv(yorum_dosyasi)
     df_weather = pd.read_csv(hava_dosyasi)
 
     # ------------------------------------------
-    # YORUMLARI GÜNLÜK BAZDA GRUPLAMA 
+    # GROUP REVIEWS ON A DAILY BASIS
     # ------------------------------------------
     df_reviews['tarih'] = pd.to_datetime(df_reviews['publishedAtDate']).dt.tz_localize(None).dt.floor('D')
 
@@ -75,7 +75,7 @@ def veri_birlestir(isim, ziyaretci_2022, ziyaretci_2023, ziyaretci_2024, ziyaret
     ).reset_index()
 
     # ------------------------------------------
-    # 4 YILLIK BETA (ÇARPAN) HESAPLAMASI
+    # 4-YEAR BETA (MULTIPLIER) CALCULATION
     # ------------------------------------------
     yorum_2022 = gunluk_yorumlar[gunluk_yorumlar['tarih'].dt.year == 2022]['yorum_sayisi'].sum()
     yorum_2023 = gunluk_yorumlar[gunluk_yorumlar['tarih'].dt.year == 2023]['yorum_sayisi'].sum()
@@ -88,12 +88,12 @@ def veri_birlestir(isim, ziyaretci_2022, ziyaretci_2023, ziyaretci_2024, ziyaret
     beta_2025 = ziyaretci_2025 / yorum_2025 if yorum_2025 > 0 else 0
 
     # ------------------------------------------
-    # HAVA DURUMU İLE BİRLEŞTİRME VE DÜZENLEME
+    # MERGE WITH WEATHER DATA AND CLEAN UP
     # ------------------------------------------
     df_weather.rename(columns={df_weather.columns[0]: 'tarih'}, inplace=True)
     df_weather['tarih'] = pd.to_datetime(df_weather['tarih'])
 
-    # 2022-2025 aralığını filtrele
+    # Filter to the 2022-2025 range
     hedef_baslangic = pd.to_datetime('2022-01-01')
     hedef_bitis = pd.to_datetime('2025-12-31')
     df_weather = df_weather[(df_weather['tarih'] >= hedef_baslangic) & (df_weather['tarih'] <= hedef_bitis)]
@@ -101,7 +101,7 @@ def veri_birlestir(isim, ziyaretci_2022, ziyaretci_2023, ziyaretci_2024, ziyaret
     df_final = pd.merge(df_weather, gunluk_yorumlar, on='tarih', how='left')
     df_final['yorum_sayisi'] = df_final['yorum_sayisi'].fillna(0)
 
-    # 4 yılın koşulları ve betaları eklendi
+    # Added the conditions and betas for the 4 years
     kosullar = [
         df_final['tarih'].dt.year == 2022,
         df_final['tarih'].dt.year == 2023,
@@ -114,7 +114,7 @@ def veri_birlestir(isim, ziyaretci_2022, ziyaretci_2023, ziyaretci_2024, ziyaret
     df_final['gercek_ziyaretci'] = (df_final['yorum_sayisi'] * df_final['uygulanan_beta']).round()
 
     # ------------------------------------------
-    # HAFTALIK VERİ DÖNÜŞÜMÜ
+    # WEEKLY DATA TRANSFORMATION
     # ------------------------------------------
     agg_dict = {
         'gercek_ziyaretci': 'sum',          
@@ -123,7 +123,7 @@ def veri_birlestir(isim, ziyaretci_2022, ziyaretci_2023, ziyaretci_2024, ziyaret
         'uygulanan_beta': 'mean' 
     }
     
-    # Sütun toplama/ortalama işlemlerini biraz daha temiz bir yapıya soktuk
+    # Reorganized the column sum/mean operations into a slightly cleaner structure
     for col in ['temp', 'prcp', 'snow', 'rain', 'wspd', 'rhum']:
         col_name = f'{isim}_{col}'
         if col_name in df_final.columns:
@@ -137,14 +137,14 @@ def veri_birlestir(isim, ziyaretci_2022, ziyaretci_2023, ziyaretci_2024, ziyaret
     haftalik_df['tarih'] = baslangic_tarihi + ' - ' + bitis_tarihi
 
     haftalik_df.to_csv(haftalik_cikti, index=False)
-    print(f"HAFTALIK veri başarıyla kaydedildi: '{haftalik_cikti}'")
+    print(f"WEEKLY data saved successfully: '{haftalik_cikti}'")
     print("-" * 55)
 
 # ==========================================
-# 3. ÇALIŞTIRMA BLOKU
+# 3. EXECUTION BLOCK
 # ==========================================
 if __name__ == "__main__":
-    girdi = input("\nLütfen lokasyon ve 4 yıllık (2022-2023-2024-2025) ziyaretçi bilgisini formatına uygun yapıştırın:\n> ")
+    girdi = input("\nPlease paste the location and 4-year (2022-2023-2024-2025) visitor information in the correct format:\n> ")
     hedef_isim, z_2022, z_2023, z_2024, z_2025 = girdi_cozumle(girdi)
     
     if hedef_isim and all(z is not None for z in [z_2022, z_2023, z_2024, z_2025]):

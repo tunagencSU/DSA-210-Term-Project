@@ -4,62 +4,62 @@ import seaborn as sns
 import os
 import glob
 
-# EDA (Exploratory Data Analysis) Grafikleri Oluşturma, her kamp alanı için 4 adet grafik
+# Generates EDA (Exploratory Data Analysis) graphs — 4 graphs per camp area
 
-# 1. Dosya Yollarını Dinamik Olarak Belirle
-# Kodun çalıştığı dizini bul (ALL CODES klasörü)
+# 1. Build file paths dynamically
+# Find the directory where the code is running (ALL CODES folder)
 mevcut_klasor = os.path.dirname(os.path.abspath(__file__))
 
-# Bir üst dizine çık (DSA_PROJE_ML klasörü)
+# Go up one directory (DSA_PROJE_ML folder)
 ana_klasor = os.path.dirname(mevcut_klasor)
 
-# Girdi ve çıktı klasörlerinin yollarını oluştur
+# Build paths for the input and output folders
 hedef_klasor = os.path.join(ana_klasor, "## Merged Data")
 output_dir = os.path.join(ana_klasor, "EDA_Grafikleri")
 
-# Klasörün var olup olmadığını kontrol et
+# Check whether the folder exists
 if not os.path.exists(hedef_klasor):
-    print(f"Hata: '{hedef_klasor}' klasörü bulunamadı. Lütfen klasör yapısını kontrol edin.")
+    print(f"Error: '{hedef_klasor}' folder not found. Please check the folder structure.")
 else:
-    # Hedef klasördeki *_haftalık_merge.csv dosyalarını bul
+    # Find *_haftalık_merge.csv files in the target folder
     arama_deseni = os.path.join(hedef_klasor, "*_haftalık_merge.csv")
     dosya_yollari = glob.glob(arama_deseni)
 
     if len(dosya_yollari) == 0:
-        print("Belirtilen klasörde '_haftalık_merge.csv' uzantılı dosya bulunamadı.")
+        print("No files with '_haftalık_merge.csv' extension found in the specified folder.")
     else:
-        print(f"Toplam {len(dosya_yollari)} kamp alanı bulundu. Analiz başlatılıyor...\n")
+        print(f"Total of {len(dosya_yollari)} camp areas found. Starting analysis...\n")
 
-        # Çıktıları düzenli tutmak için DSA_PROJE_ML içine bir ana klasör oluştur
+        # Create a main folder inside DSA_PROJE_ML to keep the outputs organized
         os.makedirs(output_dir, exist_ok=True)
 
         for dosya in dosya_yollari:
-            # Dosya adından kamp ismini dinamik olarak çıkar 
+            # Dynamically extract the camp name from the file name
             kamp_adi_ham = os.path.basename(dosya).replace("_haftalık_merge.csv", "")
             kamp_prefix = kamp_adi_ham.replace("##", "")
 
-            print(f"{kamp_prefix} işleniyor...")
+            print(f"Processing {kamp_prefix}...")
 
-            # Veriyi yükle
+            # Load the data
             df = pd.read_csv(dosya)
 
-            # Tarih sütununu işle
+            # Process the date column
             df['baslangic_tarihi'] = df['tarih'].apply(lambda x: str(x).split(' - ')[0])
             df['baslangic_tarihi'] = pd.to_datetime(df['baslangic_tarihi'], format='%Y.%m.%d')
             df = df.sort_values('baslangic_tarihi')
 
-            # Bu kamp alanına özel bir alt klasör oluştur
+            # Create a dedicated subfolder for this camp area
             kamp_klasoru = os.path.join(output_dir, kamp_prefix)
             os.makedirs(kamp_klasoru, exist_ok=True)
 
             # -------------------------------------------------------------------
-            # 1. Ziyaretçi Sayısının Zaman İçindeki Değişimi
+            # 1. Visitor count over time
             # -------------------------------------------------------------------
             plt.figure(figsize=(12, 5))
             plt.plot(df['baslangic_tarihi'], df['gercek_ziyaretci'], marker='o', linestyle='-', color='b', markersize=4)
-            plt.title(f'Zaman İçinde Haftalık Gerçek Ziyaretçi Sayısı ({kamp_prefix})')
-            plt.xlabel('Tarih')
-            plt.ylabel('Ziyaretçi Sayısı')
+            plt.title(f'Weekly Actual Visitor Count Over Time ({kamp_prefix})')
+            plt.xlabel('Date')
+            plt.ylabel('Visitor Count')
             plt.xticks(rotation=45)
             plt.grid(True, alpha=0.3)
             plt.tight_layout()
@@ -67,84 +67,84 @@ else:
             plt.close()
 
             # -------------------------------------------------------------------
-            # 2. Hava Durumu ve Ziyaretçi Sayısı Karşılaştırması (Çift Eksenli)
+            # 2. Weather vs visitor count comparison (dual y-axis)
             # -------------------------------------------------------------------
             fig, ax1 = plt.subplots(figsize=(12, 5))
 
             color = 'tab:blue'
-            ax1.set_xlabel('Tarih')
-            ax1.set_ylabel('Ziyaretçi Sayısı', color=color)
+            ax1.set_xlabel('Date')
+            ax1.set_ylabel('Visitor Count', color=color)
             ax1.plot(df['baslangic_tarihi'], df['gercek_ziyaretci'], color=color, linewidth=2)
             ax1.tick_params(axis='y', labelcolor=color)
             ax1.tick_params(axis='x', rotation=45)
 
             ax2 = ax1.twinx()
             color = 'tab:red'
-            ax2.set_ylabel('Sıcaklık (°C)', color=color)
+            ax2.set_ylabel('Temperature (°C)', color=color)
             
             temp_col = f'{kamp_prefix}_temp'
             if temp_col in df.columns:
                 ax2.plot(df['baslangic_tarihi'], df[temp_col], color=color, linestyle='--', linewidth=2)
             ax2.tick_params(axis='y', labelcolor=color)
 
-            plt.title(f'Haftalık Ziyaretçi Sayısı ve Sıcaklık İlişkisi ({kamp_prefix})')
+            plt.title(f'Weekly Visitor Count vs Temperature ({kamp_prefix})')
             fig.tight_layout()
             plt.savefig(os.path.join(kamp_klasoru, '2_ziyaretci_sicaklik_karsilastirma.png'))
             plt.close()
 
             # -------------------------------------------------------------------
-            # 3. Korelasyon Isı Haritası (Heatmap)
+            # 3. Correlation Heatmap
             # -------------------------------------------------------------------
             beklenen_sutunlar = {
-                'gercek_ziyaretci': 'Ziyaretçi',
-                'yorum_sayisi': 'Yorum',
-                'ortalama_puan': 'Puan',
-                f'{kamp_prefix}_temp': 'Sıcaklık',
-                f'{kamp_prefix}_prcp': 'Yağış(Top)',
-                f'{kamp_prefix}_snow': 'Kar',
-                f'{kamp_prefix}_rain': 'Yağmur',
-                f'{kamp_prefix}_wspd': 'Rüzgar',
-                f'{kamp_prefix}_rhum': 'Nem'
+                'gercek_ziyaretci': 'Visitors',
+                'yorum_sayisi': 'Reviews',
+                'ortalama_puan': 'Rating',
+                f'{kamp_prefix}_temp': 'Temp',
+                f'{kamp_prefix}_prcp': 'Precip(Tot)',
+                f'{kamp_prefix}_snow': 'Snow',
+                f'{kamp_prefix}_rain': 'Rain',
+                f'{kamp_prefix}_wspd': 'Wind',
+                f'{kamp_prefix}_rhum': 'Humidity'
             }
 
-            # Sadece CSV'de var olan sütunları al
+            # Keep only columns that actually exist in the CSV
             mevcut_sutunlar = {k: v for k, v in beklenen_sutunlar.items() if k in df.columns}
             corr_df = df[list(mevcut_sutunlar.keys())].rename(columns=mevcut_sutunlar)
             corr = corr_df.corr()
 
             plt.figure(figsize=(10, 8))
             sns.heatmap(corr, annot=True, cmap='coolwarm', vmin=-1, vmax=1, fmt=".2f")
-            plt.title(f'Değişkenler Arası Korelasyon Matrisi ({kamp_prefix})')
+            plt.title(f'Correlation Matrix Between Variables ({kamp_prefix})')
             plt.tight_layout()
             plt.savefig(os.path.join(kamp_klasoru, '3_korelasyon_matrisi.png'))
             plt.close()
 
             # -------------------------------------------------------------------
-            # 4. Ziyaretçi Dağılımı ve Scatter Plotlar
+            # 4. Visitor distribution and scatter plots
             # -------------------------------------------------------------------
             fig, axes = plt.subplots(1, 3, figsize=(15, 5))
 
             sns.histplot(df['gercek_ziyaretci'], bins=20, kde=True, ax=axes[0], color='purple')
-            axes[0].set_title('Ziyaretçi Sayısı Dağılımı')
-            axes[0].set_xlabel('Haftalık Ziyaretçi')
-            axes[0].set_ylabel('Frekans')
+            axes[0].set_title('Visitor Count Distribution')
+            axes[0].set_xlabel('Weekly Visitors')
+            axes[0].set_ylabel('Frequency')
 
             if temp_col in df.columns:
                 sns.scatterplot(x=df[temp_col], y=df['gercek_ziyaretci'], ax=axes[1])
-                axes[1].set_title('Sıcaklık vs Ziyaretçi')
-                axes[1].set_xlabel('Sıcaklık (°C)')
-                axes[1].set_ylabel('Ziyaretçi Sayısı')
+                axes[1].set_title('Temperature vs Visitors')
+                axes[1].set_xlabel('Temperature (°C)')
+                axes[1].set_ylabel('Visitor Count')
 
             prcp_col = f'{kamp_prefix}_prcp'
             if prcp_col in df.columns:
                 sns.scatterplot(x=df[prcp_col], y=df['gercek_ziyaretci'], ax=axes[2])
-                axes[2].set_title('Yağış vs Ziyaretçi')
-                axes[2].set_xlabel('Toplam Yağış')
-                axes[2].set_ylabel('Ziyaretçi Sayısı')
+                axes[2].set_title('Precipitation vs Visitors')
+                axes[2].set_xlabel('Total Precipitation')
+                axes[2].set_ylabel('Visitor Count')
 
-            plt.suptitle(f'Dağılım ve İlişki Grafikleri ({kamp_prefix})', y=1.05)
+            plt.suptitle(f'Distribution and Relationship Graphs ({kamp_prefix})', y=1.05)
             plt.tight_layout()
             plt.savefig(os.path.join(kamp_klasoru, '4_dagilim_ve_scatter.png'))
             plt.close()
 
-        print(f"\nTüm analizler tamamlandı! Grafikler '{output_dir}' klasörüne kaydedildi.")
+        print(f"\nAll analyses completed! Graphs saved to '{output_dir}' folder.")

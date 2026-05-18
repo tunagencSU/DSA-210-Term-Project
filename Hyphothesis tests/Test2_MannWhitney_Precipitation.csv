@@ -1,0 +1,17 @@
+﻿Location,n_dry,n_rainy,Median_dry,Median_rainy,U_statistic,Raw_p,FDR_p,FDR Significant?
+Abant Gölü Tabiat Parkı,34,176,35576,21109,4145.5,0.0004,0.0021,Yes
+Borçka Karagöl Tabiat Parkı,18,192,637,704,1670.0,0.8154,0.8698,No
+Elevit Yaylası,17,193,178,320,1442.5,0.4044,0.5392,No
+Erfelek Tatlıca Şelaleleri,34,176,4826,2015,3914.0,0.0045,0.0144,Yes
+Gölcük Tabiat Parkı,46,164,11326,7042,5130.5,0.0002,0.0016,Yes
+Güzeldere selalesi Tabiat Parkı,32,178,3638,1631,3912.5,0.0008,0.0032,Yes
+Horma Kanyonu,33,177,7183,2988,3596.5,0.035,0.08,No
+Hıdırnebi yaylası,18,192,679,1553,1511.5,0.3807,0.5392,No
+Kuzalan şelalesi Tabiat Parkı,18,192,1273,766,2022.0,0.2289,0.3662,No
+Kümbet yaylası,18,192,1557,1932,1742.0,0.9563,0.9563,No
+Perşembe Yaylası,20,190,16953,9390,2319.0,0.1054,0.1874,No
+Ulugöl Tabiat Parkı,21,189,5860,3414,2118.5,0.6128,0.7003,No
+Valla Kanyonu,34,176,2743,1682,3626.0,0.0505,0.101,No
+Yedigöller Milli Parkı,35,175,5837,3283,3859.0,0.0153,0.0408,Yes
+Şahinkaya Kanyonu,36,174,7091,1272,4413.0,0.0001,0.0016,Yes
+Şaşvat karagöl,17,193,181,434,1459.0,0.4459,0.5488,No

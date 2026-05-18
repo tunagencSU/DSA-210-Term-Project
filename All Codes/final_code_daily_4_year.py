@@ -6,20 +6,20 @@ import re
 import ssl
 import os
 
-# SSL sertifika doğrulamasını global olarak devre dışı bırakır
+# Globally disables SSL certificate verification
 ssl._create_default_https_context = ssl._create_unverified_context
 
-# günlük hava durumu tahmini yapan kod son 2 yıl 2024-2025
+# Code that produces daily weather estimates, last 2 years 2024-2025
 
 # ==========================================
-# 1. METİN PARÇALAYICI (INPUT İŞLEYİCİ)
+# 1. TEXT PARSER (INPUT HANDLER)
 # ==========================================
 def girdi_cozumle(kullanici_girdisi):
     """
     Format: Ayder yaylası - Rize (40.953940783330886, 41.10212257916922) 1298
-    Bu fonksiyon metni isim, enlem, boylam ve rakım olarak 4 parçaya ayırır.
+    This function splits the text into 4 parts: name, latitude, longitude, and elevation.
     """
-    # Regex ile formatı yakalıyoruz
+    # Capture the format with regex
     pattern = r"^(.*?)\s*\(\s*([0-9.-]+)\s*,\s*([0-9.-]+)\s*\)\s*([0-9.-]+)$"
     match = re.match(pattern, kullanici_girdisi.strip())
     
@@ -30,28 +30,28 @@ def girdi_cozumle(kullanici_girdisi):
         rakim = float(match.group(4))
         return isim, enlem, boylam, rakim
     else:
-        print("\nHATA: Girdi formatı anlaşılamadı!")
-        print("Lütfen şu formatta girdiğinizden emin olun:")
-        print("Örnek: Ayder yaylası - Rize (40.953940783330886, 41.10212257916922) 1298")
+        print("\nERROR: Input format not recognized!")
+        print("Please make sure you enter it in the following format:")
+        print("Example: Ayder yaylası - Rize (40.953940783330886, 41.10212257916922) 1298")
         return None
 
 # ==========================================
-# 2. İSTASYON BULUCU VE VERİ TESTİ
+# 2. STATION FINDER AND DATA TEST
 # ==========================================
 def istasyon_getir(enlem, boylam, baslangic, bitis, adet=3):
     hedef_nokta = ms.Point(enlem, boylam)
     istasyonlar = ms.stations.nearby(hedef_nokta, radius=150000, limit=40)
     
     if istasyonlar.empty:
-        print("Uyarı: 150 km çapında istasyon bulunamadı!")
+        print("Warning: No stations found within 150 km radius!")
         return {}
 
     beklenen_gun_sayisi = (bitis - baslangic).days + 1 
     istasyon_sozlugu = {}
     bulunan_adet = 0
 
-    print(f"\n--- YAKIN İSTASYONLAR TARANIYOR VE TEST EDİLİYOR ---")
-    print(f"{'İSTASYON ADI':<25} | {'ID':<6} | {'UZAKLIK':<8} | {'RAKIM':<6} | {'VERİ DOLULUĞU'}")
+    print(f"\n--- SCANNING AND TESTING NEARBY STATIONS ---")
+    print(f"{'STATION NAME':<25} | {'ID':<6} | {'DISTANCE':<8} | {'ELEV.':<6} | {'DATA COMPLETENESS'}")
     print("-" * 75)
     
     for station_id, row in istasyonlar.iterrows():
@@ -62,35 +62,35 @@ def istasyon_getir(enlem, boylam, baslangic, bitis, adet=3):
         rakim_m = row['elevation']
         isim = str(row['name'])[:24]
         
-        # Gerçek veri testi
+        # Real data test
         test_verisi = ms.daily(station_id, baslangic, bitis).fetch()
         
-        # Boş dönme hatalarına karşı güvenlik ağı
+        # Safety net against empty returns
         if test_verisi is None or test_verisi.empty:
             continue
             
         dolu_gun_sayisi = test_verisi['temp'].count() if 'temp' in test_verisi.columns else 0
         doluluk_orani = (dolu_gun_sayisi / beklenen_gun_sayisi) * 100
         
-        # %70'ten fazla verisi olanı kabul et
+        # Accept stations with more than 70% data
         if doluluk_orani >= 70.0:
             istasyon_sozlugu[station_id] = (mesafe_km, rakim_m)
-            print(f"{isim:<25} | {station_id:<6} | {mesafe_km} km | {rakim_m} m | %{doluluk_orani:.1f} Dolu")
+            print(f"{isim:<25} | {station_id:<6} | {mesafe_km} km | {rakim_m} m | {doluluk_orani:.1f}% Filled")
             bulunan_adet += 1
 
     return istasyon_sozlugu
 
 # ==========================================
-# 3. VERİ ÇEKME, HESAPLAMA VE CSV OLUŞTURMA
+# 3. DATA FETCH, CALCULATION AND CSV CREATION
 # ==========================================
 def hava_durumu_olustur(isim, hedef_rakim, istasyonlar, baslangic, bitis):
     dfs = []
     features = ['temp', 'prcp', 'wspd', 'rhum', 'tmin', 'tmax']
     
-    # IDW (Ters Mesafe Ağırlıklandırması)
+    # IDW (Inverse Distance Weighting)
     valid_weights = {s: 1/(d if d > 0.1 else 0.1) for s, (d, r) in istasyonlar.items()}
     
-    print("\n--- METEOSTAT'TAN VERİLER İNDİRİLİYOR VE HESAPLANIYOR ---")
+    print("\n--- DOWNLOADING AND CALCULATING DATA FROM METEOSTAT ---")
     for station_id, (distance, elevation) in istasyonlar.items():
         data = ms.daily(station_id, baslangic, bitis).fetch()
         
@@ -98,7 +98,7 @@ def hava_durumu_olustur(isim, hedef_rakim, istasyonlar, baslangic, bitis):
             existing_cols = [c for c in features if c in data.columns]
             df = data[existing_cols].copy()
             
-            # Rakım - Sıcaklık Düzeltmesi (Lapse Rate)
+            # Elevation - Temperature correction (Lapse Rate)
             rakim_farki = hedef_rakim - elevation
             sicaklik_dusus_miktari = (rakim_farki / 100) * 0.65
             
@@ -109,12 +109,12 @@ def hava_durumu_olustur(isim, hedef_rakim, istasyonlar, baslangic, bitis):
             df = df.add_suffix(f'_{station_id}')
             dfs.append(df)
 
-    # Verileri Birleştirme ve Günlük Index
-    # DEĞİŞİKLİK: freq='W' yerine freq='D' yapıldı
+    # Merge data and build daily index
+    # CHANGE: freq='W' was replaced with freq='D'
     gunluk_index = pd.date_range(start=baslangic, end=bitis, freq='D')
     
     if not dfs:
-        print(f"\nKritik Uyarı: {isim.upper()} için hiçbir veri işlenemedi. Tablo boş (NaN) dönecek.")
+        print(f"\nCritical Warning: No data could be processed for {isim.upper()}. Table will return empty (NaN).")
         daily_data = pd.DataFrame(index=gunluk_index)
         for f in features:
             daily_data[f'{isim}_{f}'] = np.nan
@@ -122,10 +122,10 @@ def hava_durumu_olustur(isim, hedef_rakim, istasyonlar, baslangic, bitis):
         daily_data[f'{isim}_rain'] = np.nan
     else:
         merged_data = pd.concat(dfs, axis=1)
-        # Veriyi baştan sona eksiksiz bir takvime (gunluk_index) oturtuyoruz:
+        # Fit the data onto a complete calendar (gunluk_index) from start to end:
         merged_data = merged_data.reindex(gunluk_index)
 
-        # Eksikleri doldur ve ağırlıklı ortalama al
+        # Fill missing values and compute the weighted average
         for feat in features:
             feat_cols = [c for c in merged_data.columns if c.startswith(f"{feat}_")]
             if not feat_cols: continue
@@ -146,11 +146,11 @@ def hava_durumu_olustur(isim, hedef_rakim, istasyonlar, baslangic, bitis):
             
             merged_data[f'{isim}_{feat}'] /= current_total_weight
 
-        # Kar ve Yağmur Ayrımı (Numpy ile hızlandırılmış)
+        # Snow vs rain split (accelerated with Numpy)
         merged_data[f'{isim}_snow'] = np.where(merged_data[f'{isim}_temp'] <= 2.0, merged_data[f'{isim}_prcp'], 0.0)
         merged_data[f'{isim}_rain'] = np.where(merged_data[f'{isim}_temp'] > 2.0, merged_data[f'{isim}_prcp'], 0.0)
 
-        # DEĞİŞİKLİK: resample('W') kaldırıldı, günlük veriler doğrudan filtrelenip yuvarlandı
+        # CHANGE: resample('W') removed; daily data is filtered and rounded directly
         sutunlar = [
             f'{isim}_temp', f'{isim}_prcp', f'{isim}_snow', 
             f'{isim}_rain', f'{isim}_tmin', f'{isim}_tmax', 
@@ -158,49 +158,49 @@ def hava_durumu_olustur(isim, hedef_rakim, istasyonlar, baslangic, bitis):
         ]
         daily_data = merged_data[sutunlar].round(2)
 
-    # Dosya Kaydı
-    # DEĞİŞİKLİK: Haftalık olanlarla karışmaması için dosya ismine "_gunluk" eklendi
+    # File saving
+    # CHANGE: "_gunluk" appended to the file name to avoid mixing with the weekly ones
     
-    # YENİ: Çıktı klasörünü bir üst dizinde (DSA_PROJE_ML) tanımla ve yoksa oluştur
+    # NEW: Define the output folder one level up (DSA_PROJE_ML) and create if missing
     cikti_klasoru = os.path.join("..", "-- Weather data 2022-2023-2024-2025 daily")
     os.makedirs(cikti_klasoru, exist_ok=True)
     
     dosya_adi = f"-- {isim}_final_hava_gunluk.csv"
     
-    # İsimdeki geçersiz karakterleri temizle (Windows dosya sistemi hatası almamak için)
+    # Clean invalid characters from the name (to avoid Windows file system errors)
     dosya_adi = "".join(c for c in dosya_adi if c.isalnum() or c in (' ', '.', '_', '-'))
     
-    # YENİ: Tam yolu oluştur (klasör + dosya adı)
+    # NEW: Build the full path (folder + file name)
     tam_yol = os.path.join(cikti_klasoru, dosya_adi)
     
     daily_data.to_csv(tam_yol)
-    print(f"\n BAŞARILI! Günlük veriler '{tam_yol}' dosyasına kaydedildi!")
+    print(f"\n SUCCESS! Daily data saved to '{tam_yol}'!")
 
 # ==========================================
-# 4. ANA ÇALIŞMA DÖNGÜSÜ
+# 4. MAIN EXECUTION LOOP
 # ==========================================
 if __name__ == "__main__":
     start_date = datetime(2021, 12, 31)
     end_date = datetime(2026, 1, 1)
 
     print("="*65)
-    print(" HAVA DURUMU VE LOKASYON OTOMASYONU BAŞLATILDI")
+    print(" WEATHER AND LOCATION AUTOMATION STARTED")
     print("="*65)
     
-    # Kullanıcıdan girdi iste
-    girdi = input("\nLütfen lokasyon bilgisini formatına uygun yapıştırın:\n> ")
+    # Ask the user for input
+    girdi = input("\nPlease paste the location information in the correct format:\n> ")
     
     cozumlenmis = girdi_cozumle(girdi)
     
     if cozumlenmis:
         hedef_isim, enlem, boylam, rakım = cozumlenmis
-        print(f"\nSistem algıladı -> İsim: {hedef_isim} | Enlem: {enlem} | Boylam: {boylam} | Rakım: {rakım}")
+        print(f"\nSystem detected -> Name: {hedef_isim} | Latitude: {enlem} | Longitude: {boylam} | Elevation: {rakım}")
         
-        # 1. İstasyonları Bul
+        # 1. Find the stations
         bulunan_istasyonlar = istasyon_getir(enlem, boylam, start_date, end_date, adet=3)
         
         if bulunan_istasyonlar:
-            # 2. Verileri Çek ve CSV'ye Yazdır
+            # 2. Fetch the data and write to CSV
             hava_durumu_olustur(hedef_isim, rakım, bulunan_istasyonlar, start_date, end_date)
         else:
-            print(f"\nKritik Hata: {hedef_isim} için kullanılabilecek geçerli istasyon bulunamadığı için işlem iptal edildi.")
+            print(f"\nCritical Error: Operation cancelled because no valid station could be found for {hedef_isim}.")

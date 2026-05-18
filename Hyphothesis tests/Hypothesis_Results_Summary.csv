@@ -1,0 +1,100 @@
+﻿
+======================================================================
+TEST 1: Permutation (Season-Controlled Temperature)
+======================================================================
+Location,Spearman_r,Permutation_p,Significant (p<0.05),FDR_p,FDR Significant?
+Abant Gölü Tabiat Parkı,0.4621,0.0007,Yes,0.0008,Yes
+Borçka Karagöl Tabiat Parkı,0.852,0.0,Yes,0.0,Yes
+Elevit Yaylası,0.8346,0.0,Yes,0.0,Yes
+Erfelek Tatlıca Şelaleleri,0.8771,0.0,Yes,0.0,Yes
+Gölcük Tabiat Parkı,0.529,0.0131,Yes,0.0131,Yes
+Güzeldere selalesi Tabiat Parkı,0.7814,0.0,Yes,0.0,Yes
+Horma Kanyonu,0.836,0.0,Yes,0.0,Yes
+Hıdırnebi yaylası,0.9053,0.0,Yes,0.0,Yes
+Kuzalan şelalesi Tabiat Parkı,0.8408,0.0,Yes,0.0,Yes
+Kümbet yaylası,0.8478,0.0,Yes,0.0,Yes
+Perşembe Yaylası,0.8975,0.0,Yes,0.0,Yes
+Ulugöl Tabiat Parkı,0.7006,0.0,Yes,0.0,Yes
+Valla Kanyonu,0.7656,0.0,Yes,0.0,Yes
+Yedigöller Milli Parkı,0.4921,0.0014,Yes,0.0015,Yes
+Şahinkaya Kanyonu,0.8226,0.0,Yes,0.0,Yes
+Şaşvat karagöl,0.7436,0.0,Yes,0.0,Yes
+
+
+======================================================================
+TEST 2: Mann-Whitney U (Precipitation-Visitor)
+======================================================================
+Location,n_dry,n_rainy,Median_dry,Median_rainy,U_statistic,Raw_p,FDR_p,FDR Significant?
+Abant Gölü Tabiat Parkı,34,176,35576,21109,4145.5,0.0004,0.0021,Yes
+Borçka Karagöl Tabiat Parkı,18,192,637,704,1670.0,0.8154,0.8698,No
+Elevit Yaylası,17,193,178,320,1442.5,0.4044,0.5392,No
+Erfelek Tatlıca Şelaleleri,34,176,4826,2015,3914.0,0.0045,0.0144,Yes
+Gölcük Tabiat Parkı,46,164,11326,7042,5130.5,0.0002,0.0016,Yes
+Güzeldere selalesi Tabiat Parkı,32,178,3638,1631,3912.5,0.0008,0.0032,Yes
+Horma Kanyonu,33,177,7183,2988,3596.5,0.035,0.08,No
+Hıdırnebi yaylası,18,192,679,1553,1511.5,0.3807,0.5392,No
+Kuzalan şelalesi Tabiat Parkı,18,192,1273,766,2022.0,0.2289,0.3662,No
+Kümbet yaylası,18,192,1557,1932,1742.0,0.9563,0.9563,No
+Perşembe Yaylası,20,190,16953,9390,2319.0,0.1054,0.1874,No
+Ulugöl Tabiat Parkı,21,189,5860,3414,2118.5,0.6128,0.7003,No
+Valla Kanyonu,34,176,2743,1682,3626.0,0.0505,0.101,No
+Yedigöller Milli Parkı,35,175,5837,3283,3859.0,0.0153,0.0408,Yes
+Şahinkaya Kanyonu,36,174,7091,1272,4413.0,0.0001,0.0016,Yes
+Şaşvat karagöl,17,193,181,434,1459.0,0.4459,0.5488,No
+
+
+======================================================================
+TEST 3: Kruskal-Wallis (Season Effect)
+======================================================================
+Location,H_statistic,p_value,Significant?,Med_Winter,Med_Spring,Med_Summer,Med_Autumn,FDR_p,FDR Significant?
+Abant Gölü Tabiat Parkı,82.42,0.0,Yes,20068,13022,41860,30023,0.0,Yes
+Borçka Karagöl Tabiat Parkı,140.94,0.0,Yes,99,198,4732,1347,0.0,Yes
+Elevit Yaylası,136.26,0.0,Yes,0,89,2561,615,0.0,Yes
+Erfelek Tatlıca Şelaleleri,132.94,0.0,Yes,498,1118,12192,3966,0.0,Yes
+Gölcük Tabiat Parkı,88.27,0.0,Yes,5767,4264,12088,10035,0.0,Yes
+Güzeldere selalesi Tabiat Parkı,122.49,0.0,Yes,699,932,4429,2428,0.0,Yes
+Horma Kanyonu,127.01,0.0,Yes,696,1544,11738,5254,0.0,Yes
+Hıdırnebi yaylası,145.81,0.0,Yes,270,389,9362,2456,0.0,Yes
+Kuzalan şelalesi Tabiat Parkı,120.24,0.0,Yes,0,416,5842,1415,0.0,Yes
+Kümbet yaylası,128.55,0.0,Yes,764,704,11429,4290,0.0,Yes
+Perşembe Yaylası,141.04,0.0,Yes,2734,4840,61033,13488,0.0,Yes
+Ulugöl Tabiat Parkı,98.81,0.0,Yes,1366,1269,8204,5723,0.0,Yes
+Valla Kanyonu,96.87,0.0,Yes,444,906,4443,2320,0.0,Yes
+Yedigöller Milli Parkı,103.39,0.0,Yes,1953,1198,5740,7754,0.0,Yes
+Şahinkaya Kanyonu,117.88,0.0,Yes,592,745,7396,2389,0.0,Yes
+Şaşvat karagöl,130.3,0.0,Yes,0,61,1956,803,0.0,Yes
+
+
+======================================================================
+TEST 4: Chi-Square (Region × Precipitation Sensitivity)
+======================================================================
+Metric,Value
+Chi2 Statistic,0.116
+Degrees of Freedom,2
+p-value,9.4365e-01
+Cramér V,0.0059
+Min Expected Frequency,375.2
+Result,H0 Not Rejected
+
+
+======================================================================
+TEST 4: Cross Tabulation
+======================================================================
+bolge,No,Yes
+Central,461,379
+East,697,563
+West,701,559
+
+
+======================================================================
+TEST 5: Permutation (ML Weather Importance)
+======================================================================
+Metric,Value
+Real R²,0.1941
+Permutation R² mean,-0.1776
+Permutation R² std,0.0453
+Permutation R² max,-0.0377
+Effect size (ΔR²),0.3717
+Permutation p-value,0.0
+Result,H0 Rejected
+
