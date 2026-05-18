@@ -1,78 +1,95 @@
 # A Decision Support Model for Spatial and Temporal Analysis of Camping Sites in the Black Sea Region
 
 ## 1. Motivation and Purpose
-The aim of this project is to analyze the 16 camping sites in the black sea region. The main goal is to build a machine learning algorithm which can determine in a specific date by analysing weather condition, transportation condition, human mobility.
+
+For this project I picked 16 camping sites in the Black Sea region. The idea was simple. I wanted to build a machine learning model that can guess how busy a site will be on a given date. To do that I pulled together weather data, info about roads and transportation, and how many people normally visit.
+
+That's pretty much it as far as the goal goes. The actual work was mostly in collecting and cleaning the data, which I will get into next.
 
 ## 2. Data Sources and Collection Methodology
-Since there is no centralized data set which can contain all the specific parameters and information for analysing these 16 camp sites, the “Unified Data Set” will be achieved by collecting and cleaning the data set obtained by independent sources by the following pipeline:
 
-* **Meteorological Data:** Data weather condition will be extracted from the meteostat Python library. The obtained data will be divided into weekly sections. Spatial interpolation will be used for high-altitude areas that lack direct measurement stations.
-* **Digital footprint (Human Density):** for isolated camp sites there is no formal data about human density. Therefore to estimate the weekly digital footprint, the annual number of human visits data will be collected by web scraping and official formal information sources (news, journal etc.). After the annual data collection, Google comments will be analyzed and the human density will be estimated in weekly periods accordingly by comparing the google comment data and the data collected by web scraping and official formal information sources (news, journal etc.).
-* **Accessibility to the healthcare and city site and road conditions:** to correctly measure the transportation condition and how much the camp site is isolated from the city, the nearest city site and healthcare center's distance and accessibility is estimated with google maps and web scraping. Slope data will be estimated accordingly with google earth data. Also the road surface data will be estimated from OpenStreetMap for each camp site.
+There is no single dataset somewhere with all of this stuff in one place. I checked. So I had to build my own "Unified Dataset" by grabbing data from different places and cleaning it up. Here is how I did it.
+
+**Weather:** I used the `meteostat` Python library. Got daily data and then grouped it into weekly chunks. A few of the camp sites are on high mountains and don't have a weather station close by, so for those I used spatial interpolation to estimate the conditions. It is not perfect but it was the best I could do.
+
+**Visitor counts (digital footprint):** This was the tricky part. Some of the camp sites are pretty remote and nobody officially counts how many people show up each week. What I did instead: first I scraped yearly visitor numbers from news articles, blogs, and other semi-official sources. Then I went through Google reviews for each site week by week. By comparing how many reviews got written in each week to the yearly total I already had, I could estimate roughly how many people came each week. Not the cleanest method but I think it works.
+
+**Access to healthcare, cities and road conditions:** To figure out how isolated a site is, I used Google Maps + some web scraping to find the closest city and the closest hospital, plus how long it takes to drive there. For slope I used Google Earth. And for road surface info I pulled from OpenStreetMap.
 
 ### Dataset Characteristics
 
-* **Collection Period & Temporal Resolution:** The collected data will cover a historical period of 4 years (2022-2025). The collected data will be divided into weekly intervals and be used for the estimation of weather conditions. For the human density data all 2022, 2023, 2024 and 2025 Google comments data about camp sites will be analyzed to estimate the monthly human density.
-* **Sample Size:** The Weather condition data will be the 16 camp sites' weather condition over a 4 years period (208 week) which will be approximately 3328 primary records. For the human density, Google comment data of the years 2022, 2023, 2024 and 2025 will be analysed, in total there is 52.719 google comments data.
-* **Fixed Data:** The annual number of human visits data will be collected by web scraping and official formal information sources (news, journal etc.), the nearest city site and healthcare center's distance and accessibility is estimated with google maps and web scraping. Slope data will be estimated accordingly with google earth data. Also the road surface data will be estimated from OpenStreetMap for each camp site.
-* **Key Variables and Expected Units:**
-  * *Weather:* Temperature in Celsius (°C), Precipitation in millimeters (mm).
-  * *Distance/Access:* Driving time in minutes.
-  * *Terrain:* Slope in degrees, Soil composition in percentages (clay/sand).
+The data covers 4 years, 2022 to 2025. Weather is in weekly intervals. For visitor numbers I went through Google reviews from all four years to get monthly estimates.
+
+Sample size wise: weather data is 16 sites × 208 weeks = about 3,328 weekly records. On the visitor side, I went through 52,719 Google reviews in total. That part took forever.
+
+A few things stay fixed and don't change over time: yearly visitor numbers (from news and official sources), driving distance and time to the closest city and hospital (from Google Maps), slope (from Google Earth), and road surface (from OpenStreetMap).
+
+Main variables and units:
+- Weather: Temperature in °C, precipitation in mm
+- Distance/access: Driving time in minutes
+- Terrain: Slope in degrees, soil composition in percentages (clay/sand)
 
 ## 3. Exploratory Data Analysis (EDA)
-First, exploratory data analysis is performed on each of the 16 campsites: per-site weekly visitor time-series, dual-axis visitor-versus-temperature comparisons, full Pearson correlation heat-maps over all weather variables, and visitor-distribution histograms along with weather scatter plots. In this context, there are a total of 64 figures under EDA_Grafikleri/, plus clean weekly-visitor bar charts under EDA_GRAPHS_HUMAN_DENSITY/.
+
+I did EDA for each of the 16 sites separately. For every site there is a weekly visitor time-series, a dual-axis chart of visitors vs. temperature, a Pearson correlation heatmap with all the weather variables, plus visitor histograms and weather scatter plots. So that's 64 figures in total under `EDA_Grafikleri/`. The cleaner weekly visitor bar charts are saved separately under `EDA_GRAPHS_HUMAN_DENSITY/`.
 
 ## 4. Hypothesis Tests
 
-Before jumping into feature engineering, I ran five hypothesis tests to double-check the assumptions I was building my model on. Since the visitor data is skewed a lot and season plays a huge role (summer brings both high temperatures and lots of people, so a basic correlation wouldn't work), I used non-parametric and randomization-based methods. For tests A, B, and C, I used the Benjamini–Hochberg FDR correction to handle multiple testing.
+Before doing any feature engineering I ran 5 hypothesis tests. Mostly to sanity check what I was assuming.
 
-### A. Season-controlled temperature effect
+The visitor data is super skewed and season has a huge effect (summer means both high temps and lots of people at the same time), so a plain correlation would just give you the obvious answer. That's why I used non-parametric and randomization-based methods. For tests A, B, and C I also applied Benjamini–Hochberg FDR correction because I was doing the same test on 16 sites and didn't want false positives piling up.
 
-- **Method:** Stratified Permutation Test with Spearman correlation (10,000 iterations)
-- **H₀:** If we keep the season constant, temperature and the number of visitors have no relationship.
-- **H₁:** Temperature and visitors are related, even when we control for the season.
+### A. Temperature effect, with season held constant
 
-I shuffled the temperatures within each season to divide the actual temperature effect from just the "summer effect."
+**Method:** Stratified Permutation Test with Spearman correlation (10,000 iterations)
+**H₀:** When season is fixed, temperature and visitor count have no relationship.
+**H₁:** Even after you control for season, temperature and visitors are still related.
 
-- **Result:** $H_0$ was rejected in all 16 sites after FDR correction. Spearman r was between 0.46 and 0.91.
-- **Takeaway:** Temperature is a strong predictor on its own. This proved that it was a good idea to use temp and temp_kare as main features.
+What I actually did: I shuffled temperatures only within each season. That way I could pull apart the "real" temperature effect from the "well duh, it's summer" effect.
+
+**Result:** H₀ rejected for all 16 sites after FDR correction. Spearman r came out between 0.46 and 0.91.
+
+**Takeaway:** Temperature is a strong predictor on its own, even with season fixed. So including `temp` and `temp_kare` as features made sense.
 
 ### B. Precipitation effect on visitors
 
-- **Method:** Mann–Whitney U Test with FDR correction
-- **H₀:** Visitor distributions are equal between rainy and non-rainy weeks.
-- **Result:** H₀ rejected in 6 / 16 sites after FDR correction.
-- **Takeaway:** How much rain matters really depends on the location. In the Eastern Black Sea area, it rains over 190 out of 210 weeks, therefore comparing the "rainy vs. non-rainy" kinda meaningless in these areas. But in the Western and Central sites where rain is less constant, it actually makes a difference.
+**Method:** Mann–Whitney U Test with FDR correction
+**H₀:** Visitor distributions are the same in rainy and non-rainy weeks.
+**Result:** H₀ rejected for 6 out of 16 sites.
+
+**Takeaway:** Rain matters but it really depends on where you are. In the Eastern Black Sea region it rains in like 190 out of 210 weeks, so "rainy vs not rainy" is kind of a meaningless split there. In the Western and Central sites where rain is more of an on-and-off thing, it actually shows up in the data.
 
 ### C. Seasonal effect on visitors
 
-- **Method:** Kruskal-Wallis H Test with FDR correction
-- **H₀:** The median number of visitors is the same across all four seasons.
-- **Result:** H₀ was rejected in all 16 sites.
-- **Takeaway:** Season is a good predictor for every site. This showed that using the variable mevsim, cyclical time encoding (ay_sin/cos, hafta_sin/cos), and seasonal patterns is meaningful.
+**Method:** Kruskal–Wallis H Test with FDR correction
+**H₀:** Median visitor count is the same across all four seasons.
+**Result:** H₀ rejected for all 16 sites.
+
+**Takeaway:** Season is a strong predictor everywhere. So putting `mevsim`, cyclical time features (`ay_sin/cos`, `hafta_sin/cos`), and seasonal patterns into the model was a good call.
 
 ### D. Region × precipitation sensitivity
 
-- **Method:** Chi-Square Test of Independence
-- **H₀:** The region and whether a site gets "low visitors on rainy weeks" have no relations.
+**Method:** Chi-Square Test of Independence
+**H₀:** Whether a site has "low visitors on rainy weeks" doesn't depend on its region.
 
-The approach should be fixeds here: at first, the test maden at the location level ($n = 4$), but the math didn't work. So, it is swicthed up to analyzing week-by-location data ($n = 3360$), which makes way more sense statistically.
+This one I had to redo. At first I ran the test at the location level (n = 4) and the math just didn't really work with that small a sample. So I switched to week-by-location data (n = 3,360) and that worked much better.
 
-- **Result:** χ² = 0.116, p = 0.944, Cramér's V = 0.0059. H₀ accepted.
-- **Takeaway:** The region doesn't change how sensitive people are to rain. Because of this, I didn't need to add a "Region × precipitation" interaction term in the ML model, which saved me a lot of time.
+**Result:** χ² = 0.116, p = 0.944, Cramér's V = 0.0059. H₀ accepted.
 
-### E. Statistical significance of weather features in the ML model
+**Takeaway:** Region does not change how sensitive people are to rain. So I didn't add a "Region × precipitation" interaction term to the model. Saved me some effort.
 
-- **Method:** Permutation Test on model performance (100 iterations)
-- **H₀:** Weather features don't improve the model's accuracy.
+### E. Do weather features actually help the ML model?
 
-all the weather columns shuffled together to break their link to visitor numbers, while keeping the weather variables properly correlated with each other.
+**Method:** Permutation Test on model performance (100 iterations)
+**H₀:** Weather features don't improve the model's accuracy.
 
-- **Result:** Observed R² = 0.194 vs. mean null R² = -0.178, so ΔR² = +0.372, p < 0.01 (zero out of 100 null permutations beat the observed value).
-- **Takeaway:** Weather features contribute significantly. This is more or less the empirical justification for the whole project premise.
+I shuffled all the weather columns together. That breaks the link between weather and visitors, but the weather variables stay correlated with each other (which matters, otherwise you mess up the correlation structure).
 
-### Summary
+**Result:** Observed R² = 0.194 vs. mean null R² = -0.178. So ΔR² = +0.372, p < 0.01. Zero out of 100 null runs beat the actual model.
+
+**Takeaway:** Weather features clearly contribute. This is basically the empirical justification for doing the whole project.
+
+### Summary table
 
 | Test | Method | Result |
 |---|---|---|
@@ -82,7 +99,7 @@ all the weather columns shuffled together to break their link to visitor numbers
 | D. Region × precipitation | Chi-Square (n = 3,360) | Not significant |
 | E. ML weather contribution | Permutation on R² | p < 0.01 |
 
-So the overall picture is: temperature and season are universal drivers, precipitation gives location-specific signal, and weather as a whole significantly improves predictive accuracy. The model architecture in the next section is built around these confirmed signals.
+So if I sum it up: temperature and season are universal, precipitation gives a signal but only in some locations, and the weather variables as a whole really do improve predictions. The model in the next section is built around exactly these signals.
 
 ---
 
@@ -90,73 +107,81 @@ So the overall picture is: temperature and season are universal drivers, precipi
 
 ### Architecture
 
-The system uses a Random Forest Regressor in a two-model setup:
+I used a Random Forest Regressor, with two separate models actually:
 
 | Model | Training Data | Purpose |
 |---|---|---|
-| Evaluation Model (`rf_model`) | 2022 – 2024 (1,680 rows) | Reports honest performance (R², MAE) on held-out 2025 |
-| Production Model (`rf_production`) | 2022 – 2025 (2,528 rows) | Generates forecasts for 2026+ using the freshest data |
+| Evaluation Model (`rf_model`) | 2022 – 2024 (1,680 rows) | Gives me honest R² and MAE on unseen 2025 |
+| Production Model (`rf_production`) | 2022 – 2025 (2,528 rows) | Makes 2026+ forecasts using the freshest data |
 
-The most important design choice in the whole project: instead of predicting absolute visitor numbers directly, the model predicts *relative demand in log-space* — basically a ratio of how busy a location is compared to its own annual average. The reason is that seasonal patterns generalize well across locations (summer is busier everywhere), but location size does not (Abant gets way more visitors than Şaşvat Karagöl). By decoupling these two things and reconstructing the absolute forecast at the end through multiplication, the model can transfer seasonal knowledge across locations without getting confused by scale differences.
+Now, the most important design decision in the whole project, by far, is this: instead of predicting visitor counts directly, the model predicts *relative demand in log-space*. Basically it predicts how busy a site is compared to its own yearly average.
 
-### Feature engineering (48 → 17 selected features)
+Why did I do it like this? Because seasonal patterns are similar across all sites (summer is busy at every camping site, more or less), but the size of each site is totally different. Abant gets way more visitors than Şaşvat Karagöl, and there is nothing the model can do to learn that from weather alone. So by separating these two things and putting them back together at the end with a multiplication, the model can learn seasonal patterns across all 16 sites without getting confused by their different sizes. This was probably the single biggest improvement over my first version.
 
-**A. Seasonal pattern features (the strongest signal):**
-- `ayni_hafta_gecmis_ort`: historical mean of relative demand for the same week-of-year at this location.
-- `ayni_hafta_gecmis_std`: standard deviation of the same week across past years (an uncertainty signal).
-- `son_yil_ayni_hafta`: last year's relative demand for the same week (the freshest seasonal signal).
-- `komsu_hafta_ort`: average of ±1 neighboring weeks (a smoothing feature).
+### Feature engineering (48 features narrowed down to 17)
 
-These all use strict past-only logic to prevent leakage. When predicting week 30 of 2025, the features only see week 30 from 2022, 2023, and 2024 — never the target week itself. I had to be careful about this because if you get the index window even slightly wrong you leak future information into training.
+I built five groups of features.
+
+**A. Seasonal pattern features (turned out to be the strongest):**
+- `ayni_hafta_gecmis_ort`: historical mean of relative demand for the same week-of-year at this site
+- `ayni_hafta_gecmis_std`: standard deviation of the same week across past years (kind of an uncertainty signal)
+- `son_yil_ayni_hafta`: last year's relative demand for the same week (the most recent seasonal signal)
+- `komsu_hafta_ort`: average of the ±1 surrounding weeks (smoothing)
+
+All of these only use past data. No leakage. When the model predicts week 30 of 2025, it sees week 30 from 2022, 2023, and 2024, but never the target week itself. I had to be really careful with the indexing because even a one-week mistake leaks the future into training. I actually messed this up the first time around and got suspiciously good results, which is how I caught it.
 
 **B. Weather and interaction features:**
-- Base: `temp`, `prcp`, `snow`, `rain`, `wspd`, `rhum`
-- Engineered: `temp_kare` (temperature squared), `sicak_yagmur` (warm rain), `kar_soguk` (cold snow), `sicaklik_konfor` (-((temp - 20)²), a comfort score), `nem_sicaklik` (humidity × temperature), `kotu_hava` (rain × wind)
+
+Base ones are `temp`, `prcp`, `snow`, `rain`, `wspd`, `rhum`.
+
+Then I engineered a few interactions: `temp_kare` (temperature squared), `sicak_yagmur` (warm rain), `kar_soguk` (cold snow), `sicaklik_konfor` which is -((temp - 20)²), basically a comfort score peaking around 20°C, `nem_sicaklik` (humidity × temperature), and `kotu_hava` (rain × wind).
 
 **C. Time features:**
-- Cyclical encoding: `ay_sin/cos`, `hafta_sin/cos`, so the model understands that December and January are neighbors.
+- Cyclical encoding with `ay_sin/cos`, `hafta_sin/cos`. This way the model understands that December and January are neighbors.
 - `mevsim`, `tatil_mi` (holiday flag), `tatil_yaz`, `tatil_ilkbahar` (holiday × season interactions).
 
 **D. Location growth dynamics:**
-- `buyume_egimi`: 3-year log-linear growth slope per location.
-- `lokasyon_olcek`: a location size baseline.
-- `buyume_x_trend`: interaction term.
+- `buyume_egimi`: a 3-year log-linear growth slope per location
+- `lokasyon_olcek`: a baseline for site size
+- `buyume_x_trend`: interaction term
 
 **E. Lagged review features:**
-- `yorum_rolling4`, `yorum_rolling8`: 4-week and 8-week rolling averages of review counts, shifted by 1 week to prevent leakage.
+- `yorum_rolling4` and `yorum_rolling8`: 4-week and 8-week rolling averages of review counts, shifted by 1 week to avoid leakage.
 
 ### Modeling pipeline
 
-1. **Data cleaning:** drops two leaky columns (`Ziyaretci_2025`, `uygulanan_beta`) and fills 362 missing rating values using location-level means.
-2. **Feature engineering:** builds all five feature families described above.
-3. **Hyperparameter search:** RandomizedSearchCV with TimeSeriesSplit (3 folds, 20 candidates = 60 fits total) to find the best Random Forest configuration without breaking the time order.
-4. **Feature selection:** features with importance below 0.005 are dropped (48 → 17), reducing noise.
-5. **Final training:** the model is fit with `oob_score=True` so I get an independent out-of-bag validation score.
+The pipeline goes like this:
 
-Best hyperparameters: `n_estimators = 500`, `min_samples_split = 10`, `min_samples_leaf = 5`, `max_features = 0.4`, `max_depth = 10`.
+1. **Data cleaning.** I drop two columns that would cause leakage (`Ziyaretci_2025`, `uygulanan_beta`) and fill 362 missing ratings using each site's mean.
+2. **Feature engineering.** All 5 groups above get built here.
+3. **Hyperparameter search.** RandomizedSearchCV with TimeSeriesSplit (3 folds, 20 candidates, so 60 fits total). Time-aware splits because otherwise you'd be cheating.
+4. **Feature selection.** Features with importance below 0.005 get dropped. That cuts 48 down to 17.
+5. **Final training.** I set `oob_score=True` so I also get an independent out-of-bag validation.
+
+The best hyperparameters ended up being: `n_estimators = 500`, `min_samples_split = 10`, `min_samples_leaf = 5`, `max_features = 0.4`, `max_depth = 10`.
 
 ### Forecasting logic
 
 ```
-growth_multiplier   = exp(growth_slope × (year − 2023.5))
+growth_multiplier    = exp(growth_slope × (year − 2023.5))
 projected_yearly_avg = yearly_avg_2022_2025 × growth_multiplier
-final_prediction    = predicted_relative_demand × projected_yearly_avg × open_ratio_mask
+final_prediction     = predicted_relative_demand × projected_yearly_avg × open_ratio_mask
 ```
 
-I added two safety constraints to this:
+There are two safety rules in there.
 
-The growth slope is capped at ±15% per year in log-space. Without this cap, locations with steep recent trends (e.g. Abant, slope ≈ 0.546) would predict around 4× growth for 2026, which is clearly unrealistic.
+First, the growth slope is capped at ±15% per year in log-space. Without the cap, sites with steep recent trends (like Abant, which has a slope of about 0.546) would predict like 4× growth for 2026. That is obviously not going to happen.
 
-There's an open-ratio mask that zeroes out predictions for weeks when the site has historically been closed (e.g. winter at high-altitude plateaus). This was actually the biggest fix from v1 of the model — before this mask, the model would predict 1,000–3,000 visitors for weeks when the actual count was zero. Adding the mask was a small change but it made a noticeable difference in the MAE.
+Second, there is an open-ratio mask that zeros out predictions for weeks when a site has historically been closed (winter at high-altitude plateaus, for example). This was actually the single biggest fix from v1 of the model. Before the mask, my model was confidently predicting 1,000 to 3,000 visitors for weeks where the actual count was zero, because it had never been told the place was closed. Tiny change, huge effect on MAE.
 
 ### Validation strategy
 
-The model gets validated through four independent signals:
+I checked the model in four independent ways:
 
-- Hold-out test on 2025: the evaluation model never sees 2025 data during training.
-- Out-of-bag (OOB) score: Random Forest's built-in cross-validation.
-- 4-fold TimeSeriesSplit CV: confirms that performance is stable across different splits.
-- Per-location breakdown: shows which sites the model handles well and which it struggles with.
+- Hold-out test on 2025 (the evaluation model never sees 2025 in training)
+- Out-of-bag (OOB) score from the Random Forest itself
+- 4-fold TimeSeriesSplit cross-validation
+- Per-location breakdown to see which sites are easy and which are hard
 
 ---
 
@@ -171,7 +196,7 @@ The model gets validated through four independent signals:
 | Train–Test gap | — | 0.068 (no overfitting) |
 | OOB R² (log-space) | — | 0.845 |
 
-The Test R² of 0.88 is above my 0.85 target. The Train–Test gap of 0.068 is well below the 0.10 threshold, and the OOB score backs up that the model is not overfit. The total prediction deviation across all of 2025 is +5.3%, so the model is slightly optimistic in aggregate but not systematically biased.
+Test R² is 0.88, which is above my target of 0.85. The train-test gap is 0.068, well under the 0.10 threshold I set, and the OOB score backs up the fact that the model isn't overfitting. Total prediction deviation over all of 2025 is +5.3%, so the model is slightly optimistic in total but not in a systematic way.
 
 ### Cross-validation results
 
@@ -183,7 +208,7 @@ The Test R² of 0.88 is above my 0.85 target. The Train–Test gap of 0.068 is w
 | Fold 4 | 2,023 | 505 | 0.878 | 2,655 |
 | **Mean (Folds 2–4)** | — | — | **0.847 ± 0.041** | **2,152** |
 
-Fold 1 looks bad on the surface but the reason is actually structural, not a bug. The seasonal pattern features need at least one full year of past history to compute, and Fold 1 simply doesn't have enough past data for that. Folds 2 through 4 are very stable at R² ≈ 0.85, which matches the held-out 2025 result. The production model is trained on all four years so it doesn't have this cold-start problem.
+Fold 1 looks bad but it's actually a structural thing, not a bug. The seasonal pattern features need at least one full year of past data to compute. Fold 1 just doesn't have enough history to work with. Folds 2 to 4 are very stable around R² ≈ 0.85, which matches the 2025 hold-out result, so I'm not too worried about it. The production model is trained on all 4 years so this cold-start problem doesn't apply to it.
 
 ### Per-location performance (sorted by R²)
 
@@ -206,16 +231,16 @@ Fold 1 looks bad on the surface but the reason is actually structural, not a bug
 | 🔴 Low | Valla Kanyonu | 0.459 | 1,287 | 2,830 | 45.5% |
 | 🔴 Low | Abant Gölü Tabiat Parkı | 0.413 | 8,836 | 30,224 | 29.2% |
 
-Summary:
-- 🟢 High performance (R² ≥ 0.80): 9 of 16 sites, mean R² = 0.861
-- 🟡 Mid performance (0.65 ≤ R² < 0.80): 3 of 16 sites, mean R² = 0.723
-- 🔴 Low performance (R² < 0.65): 4 of 16 sites, mean R² = 0.512
+Quick summary:
+- 🟢 High (R² ≥ 0.80): 9 of 16 sites, average R² = 0.861
+- 🟡 Mid (0.65 ≤ R² < 0.80): 3 of 16 sites, average R² = 0.723
+- 🔴 Low (R² < 0.65): 4 of 16 sites, average R² = 0.512
 
-The low-tier sites (Abant, Gölcük, Valla, Güzeldere) tend to be open year-round and have less pronounced seasonal swings. The model's main signal — the seasonal pattern of the same week across past years — is much weaker for these sites because the pattern itself is flatter. Abant especially is a major year-round attraction near Bolu and its visitor numbers are driven more by weekend and holiday dynamics than by season, which the current feature set doesn't capture as cleanly.
+The low-tier sites are Abant, Gölcük, Valla, and Güzeldere. What they have in common is they are open all year round and don't have huge seasonal swings. Since my model leans really hard on seasonal patterns, when the seasonal pattern is flat, there isn't much signal left. Abant especially is a massive year-round attraction close to Bolu, and its visitor numbers are driven much more by weekends and holidays than by which season it is. The features I built don't capture that as well as I'd like.
 
 ### Feature importance
 
-The top 10 features (out of 17 selected) carry most of the predictive weight:
+The top 10 features (out of 17) carry most of the weight:
 
 | Feature | Importance |
 |---|---|
@@ -230,7 +255,7 @@ The top 10 features (out of 17 selected) carry most of the predictive weight:
 | `sicaklik_konfor` | 0.023 |
 | `mevsim` | 0.020 |
 
-Grouped by category:
+And grouped by category:
 
 | Category | Total Importance | Share |
 |---|---|---|
@@ -240,25 +265,25 @@ Grouped by category:
 | Other (reviews, location) | 0.037 | 3.7% |
 | Location growth dynamics | 0.000 | 0.0% |
 
-One small note on the last row: `buyume_egimi` (growth slope) was eliminated by feature selection inside the Random Forest, but it's still being used as a post-processing scaling factor in `gelecek_tahmin()`. This was actually intentional — the architecture lets the Random Forest handle *relative* demand (seasonal patterns) while the multiplication step handles *location scale* (growth). Keeping those two roles separate is part of why dropping the low-importance features didn't hurt overall performance.
+About that last row: `buyume_egimi` (the growth slope) got dropped by feature selection inside the Random Forest, but I'm still using it as a multiplier in `gelecek_tahmin()` after the model runs. That was on purpose. The Random Forest handles *relative* demand (seasonal stuff) and the multiplication step handles *site size and growth*. Keeping those two roles separate is partly why dropping the low-importance features didn't hurt anything.
 
 ### Key insights
 
-A few patterns stand out from the results:
+A few things stood out:
 
-1. **Past-week patterns dominate.** A single feature — the historical average of ±1 surrounding weeks at the same location — explains 38% of the model's decisions. Hypothesis Test A already hinted at this: temperature explains a lot, but a location's own history explains even more.
+1. **Past-week patterns are by far the biggest signal.** Just one feature, the average of the ±1 surrounding weeks at the same site, explains 38% of the model's decisions on its own. Hypothesis Test A already pointed in this direction, but it was still surprising to see one feature dominate that much.
 
-2. **Weather signal is real but secondary.** 17% of importance, with `nem_sicaklik` (humidity × temp interaction) actually outperforming raw temperature. This is consistent with Hypothesis Test E (ΔR² = +0.37, p < 0.01).
+2. **Weather matters, but it's in second place.** 17% of importance, and the humidity × temperature interaction (`nem_sicaklik`) actually beat raw temperature. Consistent with Hypothesis Test E.
 
-3. **Region × precipitation is empirically pointless.** Hypothesis Test D rejected the interaction, and the model doesn't reach for region-based features either when given the choice. So that was engineering effort I saved.
+3. **Region × precipitation really is useless.** Test D said no, and the model also doesn't pick region-based features when it has the option. So that lined up nicely.
 
-4. **The seasonal hypothesis is the strongest claim.** Test C showed summer medians 5–30× other seasons in 16/16 sites, and the top three features in the final model are all seasonal pattern features. The chain hypothesis testing → feature design → model performance is internally consistent here, which was satisfying to see.
+4. **The seasonal hypothesis turned out to be the strongest claim.** Test C showed that summer medians are 5 to 30 times the other seasons in all 16 sites. And then the top three features in the final model are all seasonal pattern features. The whole chain from hypothesis testing to feature design to model results is internally consistent, which honestly felt good to see.
 
-5. **Forecasts for 2026 look plausible.** Some examples: Perşembe Yaylası in mid-August during a holiday gives 100,521 visitors (vs. annual avg 22,380, growth multiplier 1.26×); Horma Kanyonu in January at -2°C gives 1,332 visitors; Abant Gölü in November gives 55,772 visitors. The model produces sensibly different magnitudes for sensibly different scenarios.
+5. **2026 forecasts look reasonable.** A few examples: Perşembe Yaylası in mid-August during a holiday gives 100,521 visitors (vs. yearly average 22,380, growth multiplier 1.26×). Horma Kanyonu in January at -2°C gives 1,332 visitors. Abant Gölü in November gives 55,772. The numbers look sensible for sensibly different conditions.
 
 ### Overall model health: 72 / 100
 
-I ran an end-of-pipeline health check on 9 strict criteria:
+I ran a final health check with 9 criteria:
 
 | Criterion | Status | Score |
 |---|---|---|
@@ -272,7 +297,7 @@ I ran an end-of-pipeline health check on 9 strict criteria:
 | No data leakage | ✅ Verified | 1.0 |
 | Production readiness | ✅ Full-data model deployed | 1.0 |
 
-The two partial-credit losses are honest acknowledgements rather than bugs — I unpack them in the next section.
+The two partial-credit cases are honest weaknesses, not bugs. I'll talk about them next.
 
 ---
 
@@ -280,31 +305,31 @@ The two partial-credit losses are honest acknowledgements rather than bugs — I
 
 ### Limitations
 
-**Visitor counts are proxied, not measured.** Annual totals come from web-scraped news and tourism statistics, and weekly disaggregation relies on Google review density. Silent visitors (people who don't post a review) are systematically underrepresented. A real ground-truth dataset, like entrance gate counts from park authorities, would improve basically everything downstream of this.
+**Visitor counts are estimated, not measured.** Yearly totals come from web-scraped news and tourism stats. Weekly numbers come from Google review density. Anyone who visits but doesn't post a review is invisible to me. If I had actual entrance gate counts from park authorities, basically everything downstream would improve.
 
-**Low-volume weeks remain hard.** The volume-quartile breakdown showed the model's R² is +0.80 for high-volume weeks but actually *negative* (R² = -8.9 for the lowest quartile) for low-volume weeks. In plain terms: when actual visitors are very low (winter or shoulder-season weeks), small absolute errors translate into large *relative* errors, and just predicting the bucket mean would do better than the model. The open-ratio mask reduces this but doesn't eliminate it.
+**Low-volume weeks are still hard.** The volume-quartile check showed R² is around +0.80 for high-volume weeks but actually *negative* (R² = -8.9) for the lowest quartile. In normal language: when there are very few visitors, small absolute errors turn into big relative errors. At that point, just predicting the bucket mean would do better than my model. The open-ratio mask helps but doesn't completely fix this.
 
-**Spatial interpolation adds uncertainty for high-altitude sites.** Several plateaus don't have a nearby weather station, so weather has to be interpolated from the closest one. The microclimate of a high-altitude plateau can genuinely differ from the station closest to it, so this is a real source of error I couldn't fully fix.
+**Spatial interpolation adds uncertainty for high-altitude sites.** Some plateaus don't have a nearby weather station, so I had to estimate weather from the closest one. Microclimates at altitude can be pretty different from the station nearby, so this is a real source of error I couldn't fully get rid of.
 
-**The growth slope cap at ±15% per year is a tradeoff.** It's a safety constraint, but for genuinely fast-growing sites the cap will systematically underestimate 2026 numbers. Abant's raw slope was around 0.55, which would have given an unrealistic 4× forecast, so the cap was clearly needed — but it's a blunt instrument.
+**The ±15% growth slope cap is a trade-off.** It's a safety constraint, but for sites that really are growing fast, the cap will underestimate 2026. Abant's raw slope was around 0.55, which would have given a 4× forecast, so the cap was clearly necessary. But it's a blunt tool.
 
-**The 4-year window includes the post-pandemic boom.** 2022–2025 captures the rapid post-COVID recovery in domestic tourism. The seasonal pattern features implicitly assume this trend continues, so a sudden flattening (e.g. economic downturn or new restrictions) would degrade the predictions.
+**The 4-year window includes the post-pandemic boom.** 2022 to 2025 captures the rapid post-COVID recovery in domestic tourism. My seasonal pattern features sort of assume this trend keeps going, so if things suddenly flatten (economic downturn, new restrictions, whatever), predictions will get worse.
 
-**Social media virality is not modeled.** If a site goes viral on TikTok or Instagram it can see a sudden, structurally unpredictable spike. The model has no way to handle this.
+**Social media virality isn't modeled.** A site can go viral on TikTok or Instagram and get a huge sudden spike that nothing in my data could predict. The model has no way to handle that.
 
-**Holiday encoding is simple.** The `tatil_mi` flag treats all holidays equally, but religious holidays (Ramazan / Kurban Bayramı) and secular national holidays (29 Ekim) almost certainly affect camping demand differently. I didn't separate them in this version.
+**Holiday encoding is simple.** The `tatil_mi` flag treats every holiday the same. But religious holidays (Ramazan, Kurban Bayramı) almost certainly affect camping demand differently from national holidays (29 Ekim) and school vacations. I didn't split them out in this version. Would be a good next step.
 
 ### Future work
 
-A few directions I'd take this if I had more time:
+A few things I'd add with more time:
 
-- Mobile cell-tower data or Strava/Komoot heatmaps would give a much better measure of actual human density than review counts, especially for weekdays when reviews tend to lag visits.
-- Sentinel-2 or Landsat satellite imagery combined with simple computer vision (counting vehicles in parking lots) would give a completely independent ground truth.
-- A real-time forecast API built on top of the production model, exposed through the `Local Website/` prototype already included in the repo, would let users query 2026 forecasts directly.
-- Replacing point estimates with confidence intervals using Quantile Regression Forest (10/50/90 percentiles) would be much more useful for actual planning.
-- Multi-output modeling: jointly predicting visitor count, average stay duration, and satisfaction score from forward-looking review sentiment.
-- Generalization to other regions (Toros mountains, Kaçkar interior, Mediterranean coast) — the pipeline should port over with mostly just a data substitution.
-- Disambiguating holiday types: separating religious vs. national vs. school-vacation holidays would likely sharpen the holiday × season interactions.
+- Mobile cell tower data, or Strava/Komoot heatmaps, would give a much better measure of actual human density than counting reviews. Especially for weekdays, when reviews lag behind visits.
+- Sentinel-2 or Landsat satellite images plus some simple computer vision (counting cars in parking lots) could give a totally independent ground truth.
+- A real-time forecast API on top of the production model, served through the `Local Website/` prototype that's already in the repo.
+- Replacing point estimates with confidence intervals using Quantile Regression Forest (10/50/90 percentiles). Way more useful for actual planning than a single number.
+- Multi-output modeling: predict visitor count, average stay length, and satisfaction score together, using forward-looking review sentiment.
+- Testing the pipeline in other regions (Toros, Kaçkar interior, Mediterranean coast). Should mostly just need a data swap.
+- Splitting holiday types properly. Religious vs. national vs. school-vacation holidays would probably make the holiday × season interactions sharper.
 
 ---
 
@@ -339,7 +364,7 @@ cd "All Codes"
 python ml.py
 ```
 
-Expected runtime is around 2–3 minutes on a modern laptop. The script prints all the metrics reported in Section 6 plus example 2026 predictions.
+It takes about 2 to 3 minutes on a normal laptop. The script prints all the metrics from Section 6 plus some 2026 prediction examples.
 
 For the interactive prototype:
 
@@ -352,8 +377,8 @@ cd "Local Website"
 
 ## 9. Academic Integrity and AI Disclosure
 
-In line with the DSA 210 academic integrity guidelines, I want to be transparent: AI tools (Large Language Models) were used during this project for code generation, debugging, data-processing utilities, and text refinement. 
+To be upfront, in line with the DSA 210 academic integrity guidelines: I did use AI tools (LLMs) during this project. Mainly for code generation, debugging, small data-processing utilities, and some text editing. The conceptual design, feature engineering choices, hypothesis test selection, and the interpretation of the results are my own work.
 
-All specific prompts I used along with the corresponding generated outputs (chat histories) have been saved and documented, and they're available on request.
+I saved all the specific prompts I used and the chat histories that came out of them. Happy to share them if asked.
 
-No part of the dataset construction, statistical reasoning, or model evaluation was outsourced to AI without my review and verification.
+No part of the dataset construction, the statistical reasoning, or the model evaluation was outsourced to AI without me reviewing and verifying it myself.
