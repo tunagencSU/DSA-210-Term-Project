@@ -171,7 +171,7 @@ The model gets validated through four independent signals:
 | Train–Test gap | — | 0.068 (no overfitting) |
 | OOB R² (log-space) | — | 0.845 |
 
-Our Test R² is 0.88, successfully passing the target 0.85. Also the gap between the training and test scores is very low confirming that the model is not overfitting. In the year 2025, the total estimations were about 5.3% higher than the actual data. This shows the model is a bit optimistic but accurate and unbiased at general."
+Our Test R² is 0.88, successfully passing the target 0.85. Also the gap between the training and test scores is very low confirming that the model is not overfitting. In the year 2025, the total estimations were about 5.3% higher than the actual data. This shows the model is a bit optimistic but accurate and unbiased at general.
 
 ### Cross-validation results
 
