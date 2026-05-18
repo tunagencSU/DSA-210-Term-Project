@@ -352,7 +352,7 @@ cd "Local Website"
 
 ## 9. Academic Integrity and AI Disclosure
 
-In line with the DSA 210 academic integrity guidelines, I want to be transparent: AI tools (Large Language Models) were used during this project for code generation, debugging, data-processing utilities, and text refinement. The conceptual design, feature engineering decisions, hypothesis test selection, and the analysis of results are my own work.
+In line with the DSA 210 academic integrity guidelines, I want to be transparent: AI tools (Large Language Models) were used during this project for code generation, debugging, data-processing utilities, and text refinement. 
 
 All specific prompts I used along with the corresponding generated outputs (chat histories) have been saved and documented, and they're available on request.
 
