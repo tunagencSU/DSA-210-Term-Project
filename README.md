@@ -2,9 +2,7 @@
 
 ## 1. Motivation and Purpose
 
-For this project I picked 16 camping sites in the Black Sea region. The idea was simple. I wanted to build a machine learning model that can guess how busy a site will be on a given date. To do that I pulled together weather data, info about roads and transportation, and how many people normally visit.
-
-That's pretty much it as far as the goal goes. The actual work was mostly in collecting and cleaning the data, which I will get into next.
+The Black Sea region is a spectacular destination hosting numerous magnificent camping areas. There are dozens of alternatives to visit and dozens of places to see. However, we lack a data or information source even for the most popular among these locations. My objective in this project is to select 16 of the most popular camping spots in the Black Sea region, gather information about them, and understand their general popularity. By analyzing which camping areas become popular during specific seasons and determining the overall crowd density of these areas on an annual and weekly basis, the ultimate goal is to create a reliable information source that people can depend on when planning their trips.
 
 ## 2. Data Sources and Collection Methodology
 
