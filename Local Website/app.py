@@ -14,6 +14,13 @@ Endpoints:
 Run: python app.py  (then from browser http://localhost:5000)
 """
 
+import sys
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 import os
 import sys
 import traceback
