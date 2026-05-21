@@ -7,6 +7,13 @@ in the original ml_v2 code. The only difference: the model and auxiliary data
 are loaded from a pickle file, no in-memory computation.
 """
 
+import sys
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 import os
 import pickle
 import numpy as np
