@@ -10,6 +10,13 @@ Run: python train_model.py
 Output: models/production_artifact.pkl
 """
 
+import sys
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 import warnings
 warnings.filterwarnings("ignore")
 
