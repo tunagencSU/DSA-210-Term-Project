@@ -14,7 +14,7 @@ mevcut_klasor = os.path.dirname(os.path.abspath(__file__))
 ana_klasor = os.path.dirname(mevcut_klasor)
 
 # Build paths for the input and output folders
-hedef_klasor = os.path.join(ana_klasor, "## Merged Data")
+hedef_klasor = os.path.join(ana_klasor, "## Merged data")
 output_dir = os.path.join(ana_klasor, "EDA_Grafikleri")
 
 # Check whether the folder exists
