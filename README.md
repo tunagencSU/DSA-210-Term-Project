@@ -340,7 +340,7 @@ python ml.py
 
 Expected runtime is around 2–3 minutes
 
-For the interactive prototype:
+For the interactive prototype: Local Website !!!
 
 ```bash
 cd "Local Website"
