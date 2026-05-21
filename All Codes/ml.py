@@ -73,6 +73,9 @@ OPTIMIZATION:
 =============================================================
 """
 
+import sys
+sys.stdout.reconfigure(encoding="utf-8")
+
 import warnings
 warnings.filterwarnings("ignore", message=".*sklearn.utils.parallel.delayed should be used with.*")
 warnings.filterwarnings("ignore", category=UserWarning)
