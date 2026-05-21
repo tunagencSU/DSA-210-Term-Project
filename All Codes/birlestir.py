@@ -34,7 +34,7 @@ MEVCUT_KLASOR = os.path.dirname(os.path.abspath(__file__))
 ANA_KLASOR = os.path.dirname(MEVCUT_KLASOR)
 
 # Define paths based on ANA_KLASOR
-HAFTALIK_KLASORU   = os.path.join(ANA_KLASOR, "## Merged Data")
+HAFTALIK_KLASORU   = os.path.join(ANA_KLASOR, "## Merged data")
 CAMP_DATA_DOSYASI  = os.path.join(ANA_KLASOR, "Fixed Data", "AA_Camp_data_road___annual_visitors.csv")
 CIKTI_DOSYASI      = os.path.join(ANA_KLASOR, "Fixed Data", "AA_Makine_Ogrenmesi_Hazir_Tum_Veri_YENI.csv")
 
