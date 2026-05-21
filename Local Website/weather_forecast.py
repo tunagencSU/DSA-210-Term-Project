@@ -28,6 +28,13 @@ Training/inference consistency:
     training set.
 """
 
+import sys
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 from datetime import date, timedelta
 from typing import Optional
 
