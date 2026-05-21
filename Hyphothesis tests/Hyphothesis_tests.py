@@ -20,6 +20,13 @@ ALLOWED TESTS UTILIZED:
 ============================================================================
 """
 
+import sys
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 import os
 import numpy as np
 import pandas as pd
